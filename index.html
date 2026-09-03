@@ -155,9 +155,10 @@ button,input,select,textarea{font:inherit;color:inherit}
 .assg a{cursor:pointer;color:var(--ink2);border-bottom:1px dotted var(--bordo2)}
 .assg a:hover{color:var(--blu);border-color:var(--blu)}
 .assg span{margin:0 6px;color:var(--bordo2)}
-.cols{display:grid;gap:14px;align-items:stretch;min-height:0}
+.cols{display:grid;gap:14px;align-items:stretch;min-height:0;flex-shrink:0}
 .cols>div{min-height:0;min-width:0;display:flex;flex-direction:column;gap:14px}
-.pn{background:var(--sup);border:1px solid var(--bordo);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;min-height:0;min-width:0;width:100%}
+.pn{background:var(--sup);border:1px solid var(--bordo);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;min-height:0;min-width:0;width:100%;flex-shrink:0}
+.pn.gro{flex-shrink:1}
 .pn.gro{flex:1;min-height:170px}
 .pn.gro.pres{min-height:330px}
 /* i presenti si devono vedere tutti insieme, non due alla volta */
@@ -280,7 +281,7 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 .cerca-r:hover{background:var(--sup2)}
 .cerca-r mark{background:#FBE9A7;color:inherit;padding:0 1px;border-radius:2px}
 
-.firma-box{border:1px dashed var(--bordo2);border-radius:6px;background:var(--sup);height:170px;position:relative;overflow:hidden}
+.firma-box{border:1px dashed var(--bordo2);border-radius:6px;background:var(--sup);height:min(46vh,320px);position:relative;overflow:hidden}
 .firma-box canvas{width:100%;height:100%;touch-action:none;display:block}
 .firma-vis{height:56px;display:flex;align-items:center}
 .firma-vis img{height:100%;width:auto}
@@ -378,7 +379,8 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 .foglio table.inv .num{font-family:var(--mono);font-size:.86em;color:#9A9A94;text-align:right}
 .foglio table.inv tr.sub td{border-bottom:.5px solid #9A9A94;font-weight:600;padding-top:5px}
 .foglio table.inv .nota{display:block;color:#7A7A74;font-size:.88em;font-style:italic}
-.foglio table.inv .pre{display:block;color:#8A6A1F;font-size:.82em;font-family:var(--sans)}
+.foglio table.inv .pre{display:block;color:#8A6A1F;font-size:.85em;font-family:var(--sans);font-weight:600;margin-top:1px}
+.foglio table.inv .pre::before{content:"PRESTITO — ";letter-spacing:.04em}
 /* inventario stampato: righe basse, una riga per oggetto, niente testi che vanno a capo */
 .foglio table.inv.sem td{padding:3px 6px 3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
 .foglio table.inv.sem td.ft{padding:2px 6px 2px 0}
@@ -1371,7 +1373,7 @@ function conferma(testo,fn){
 function avvisa(titolo,testo){ modale({titolo,corpo:`<p style="margin:0">${testo}</p>`,azioni:[{testo:"Ho capito",cls:"pri",destra:true,fn:()=>{}}]}); }
 
 /* ---------- esportazione: sempre a scelta fra PDF e CSV ---------- */
-function esporta({nome, foglio, righe, excel, excelEtichetta}){
+function esporta({nome, titolo, foglio, righe, excel, excelEtichetta}){
   const cond=siPuoCondividere();
   const riga=(k,tit,sot,pri)=>`<div class="rw"><div class="g"><div class="t">${esc(tit)}</div><div class="s">${esc(sot)}</div></div>
     <button class="bt sm${pri?" pri":""}" data-e="${k}">${k==="pdf"?"Stampa":"Scarica"}</button>
@@ -1390,7 +1392,7 @@ function esporta({nome, foglio, righe, excel, excelEtichetta}){
   const dammi = k => k==="xlsx" ? excel() : {blob:bloccoCSV(righe()), nome:nome+".csv"};
   $$("[data-e]",el).forEach(b=>b.onclick=()=>{
     el.remove();
-    if(b.dataset.e==="pdf") stampa(foglio());
+    if(b.dataset.e==="pdf") stampa(foglio(), titolo||nome);
     else { const f=dammi(b.dataset.e); scarica(f.blob, f.nome); }
   });
   $$("[data-c]",el).forEach(b=>b.onclick=()=>{
@@ -1556,98 +1558,49 @@ function scarica(blob,nome){
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
 /* ---------- stampa ----------
-   Il foglio si apre in una finestra sua, con dentro tutti gli stili: si stampa da lì,
-   non toccando mai la pagina dell'app — è quello che evita lo zoom residuo su iPad
-   dopo che il foglio di stampa di sistema si chiude, e la pagina bianca che usciva
-   quando si stampava sopra l'app mentre il contenuto era ancora in composizione.
-   Se il browser non lascia aprire la finestra (popup bloccati, o dentro l'app
-   installata sulla schermata Home, dove capita), il foglio si vede dentro una finestra
-   dell'app con un pulsante «Stampa» ben visibile: il tocco è sempre esplicito, non
-   c'è mai una stampa automatica silenziosa che il sistema possa rifiutare. */
-function foglioIntero(html, titolo){
-  const stili=[...document.querySelectorAll("style")].map(s=>s.outerHTML).join("");
-  const font=document.querySelector('link[rel="stylesheet"]');
-  const annullato = html.includes('class="wmk"');
-  return `<!doctype html><html lang="it"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(titolo||"Segreteria Casentino")}</title>
-${font?font.outerHTML:""}
-${stili}
-<style>
-  html,body{height:auto;overflow:visible;background:#EDEEE8;margin:0}
-  #stampa{display:block!important}
-  @media screen{
-    .pgw{max-width:840px;margin:0 auto;background:#fff;box-shadow:0 1px 12px rgba(0,0,0,.12)}
-    .pgw>tbody>tr>td{padding:0 34px}
-    .rh{display:block;height:34px;padding-top:16px;text-align:center;font-family:var(--mono);
-      font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A2}
-    .rh.ann{color:#A33B2A;font-weight:600}
-    .sp{height:26px}
-    .barra{position:sticky;top:0;z-index:9;display:flex;gap:10px;align-items:center;justify-content:center;
-      padding:10px;background:#17369B;color:#fff;font-family:var(--sans);font-size:15px}
-    .barra button{border:0;border-radius:6px;padding:8px 18px;font:inherit;font-weight:600;
-      background:#fff;color:#17369B;cursor:pointer}
-    .barra span{opacity:.85;font-size:13.4px}
-  }
-  @media print{ .barra{display:none!important} html,body{background:#fff} }
-</style></head><body>
-<div class="barra"><button onclick="window.print()">Stampa</button>
-  <span>oppure condividi il PDF dal menu di stampa</span></div>
-<div id="stampa"><table class="pgw">
-  <thead><tr><td><div class="rh${annullato?" ann":""}">${annullato
-    ? "Segreteria Casentino · verbale annullato" : "Segreteria Casentino"}</div></td></tr></thead>
-  <tbody><tr><td>${html}</td></tr></tbody>
-  <tfoot><tr><td><div class="sp">&nbsp;</div></td></tr></tfoot></table></div>
-<script>
-  addEventListener("load",function(){
-    var vai=function(){ try{ window.focus(); window.print(); }catch(e){} };
-    if(document.fonts&&document.fonts.ready) document.fonts.ready.then(function(){ setTimeout(vai,250); });
-    else setTimeout(vai,600);
-  });
-<\/script></body></html>`;
-}
-/* dentro l'app (non in una finestra a parte): il foglio si vede in una finestra
-   modale, si tocca «Stampa» a mano, e dopo si rimette a posto lo zoom — su iPad,
-   chiudere il foglio di stampa di sistema a volte lascia la pagina ingrandita. */
-function stampaDentro(html, titolo){
-  const annullato = html.includes('class="wmk"');
-  const corpo = `<table class="pgw">
-      <thead><tr><td><div class="rh${annullato?" ann":""}">${annullato
-        ? "Segreteria Casentino · verbale annullato" : "Segreteria Casentino"}</div></td></tr></thead>
-      <tbody><tr><td>${html}</td></tr></tbody>
-      <tfoot><tr><td><div class="sp">&nbsp;</div></td></tr></tfoot></table>`;
-  const {el}=modale({titolo:titolo||"Anteprima di stampa",largo:true,corpo:
-    `<div style="max-height:60vh;overflow:auto;background:#EDEEE8;margin:-16px -20px 0;padding:16px">
-       <div style="max-width:760px;margin:0 auto;background:#fff;box-shadow:0 1px 10px rgba(0,0,0,.1)">${corpo}</div>
-     </div>`,
-    azioni:[{testo:"Chiudi",fn:()=>{}},
-      {testo:"Stampa",cls:"pri",destra:true,fn:()=>{
-        $("#stampa").innerHTML = corpo;
-        const rimettiAPosto=()=>{
-          removeEventListener("afterprint",rimettiAPosto);
-          window.scrollTo(0,0);
-          const vp=document.querySelector('meta[name="viewport"]');
-          if(vp){ const c=vp.content; vp.content=c+","; setTimeout(()=>{ vp.content=c; },50); }
-          setTimeout(()=>{ $("#stampa").innerHTML=""; },300);
-        };
-        addEventListener("afterprint",rimettiAPosto);
-        try{ window.print(); }
-        catch(e){ rimettiAPosto();
-          avvisa("Stampa non disponibile",`Questo dispositivo non lascia aprire la stampa da qui.
-            Se hai aperto l'app dalla <b>schermata Home</b>, prova ad aprirla con <b>Safari</b>.`); }
-        return false; }}]});
-}
+   Tutto resta nella stessa pagina — niente finestre o schede nuove: su iPad,
+   dentro l'app installata, aprirne una nuova ti ci lascia dentro senza un modo
+   ovvio per tornare indietro. Il foglio si scrive in #stampa (nascosto finché
+   non si stampa davvero, mostrato solo da @media print) e si stampa subito,
+   dentro lo stesso tocco che ha acceso il pulsante «Stampa» — non c'è nessun
+   timer che tolga il contenuto prima che il sistema abbia finito di comporlo:
+   si aspetta l'evento «afterprint», che arriva solo a stampa (o annullamento)
+   avvenuti. Il titolo della pagina diventa per un attimo il nome di quel che
+   si sta stampando: è lui che il sistema propone come nome del PDF. */
 function stampa(html, titolo){
-  const doc=foglioIntero(html,titolo);
-  let w=null;
-  try{ w=window.open("","_blank"); }catch(e){ w=null; }
-  if(w && w.document){
-    try{
-      w.document.open(); w.document.write(doc); w.document.close();
-      return;
-    }catch(e){ try{ w.close(); }catch(e2){} }
+  const annullato = html.includes('class="wmk"');
+  $("#stampa").innerHTML =
+    `<table class="pgw">
+       <thead><tr><td><div class="rh${annullato?" ann":""}">${annullato
+         ? "Segreteria Casentino · verbale annullato" : "Segreteria Casentino"}</div></td></tr></thead>
+       <tbody><tr><td>${html}</td></tr></tbody>
+       <tfoot><tr><td><div class="sp">&nbsp;</div></td></tr></tfoot></table>`;
+  const titoloPrima = document.title;
+  if(titolo) document.title = titolo;
+  let fatto=false;
+  const rimettiAPosto = ()=>{
+    if(fatto) return; fatto=true;
+    removeEventListener("afterprint", rimettiAPosto);
+    document.title = titoloPrima;
+    /* su iPad chiudere il foglio di stampa a volte lascia la pagina ingrandita:
+       un piccolo tocco al viewport e alla posizione forza il ridisegno giusto */
+    window.scrollTo(0,0);
+    const vp=document.querySelector('meta[name="viewport"]');
+    if(vp){ const c=vp.content; vp.content=c+","; setTimeout(()=>{ vp.content=c; },50); }
+    setTimeout(()=>{ $("#stampa").innerHTML=""; },300);
+  };
+  addEventListener("afterprint", rimettiAPosto);
+  if(typeof window.print!=="function"){
+    rimettiAPosto();
+    avvisa("Stampa non disponibile","Questa finestra non permette di stampare. Apri l'app dal file salvato sul dispositivo.");
+    return;
   }
-  stampaDentro(html, titolo);
+  try{ window.print(); }
+  catch(e){ rimettiAPosto();
+    avvisa("Stampa bloccata","Il browser ha bloccato la stampa. Se stai guardando l'app dentro un'anteprima online, aprila dal file salvato sul dispositivo."); }
+  /* alcuni browser (soprattutto in un'app installata) non mandano mai «afterprint»:
+     un ripristino di sicurezza dopo un po', nel caso non sia già stato fatto */
+  setTimeout(rimettiAPosto, 4000);
 }
 /* La cartella dei backup si sceglie una volta e l'app scrive sempre lì, tenendo gli
    ultimi 10 file: un backup fatto per sbaglio non cancella più i dati di prima.
@@ -2088,7 +2041,7 @@ VISTE.decisioni=()=>{
   $("#adec").onchange=e=>{ decAnno=+e.target.value; disegna(); };
   $$("[data-dt]").forEach(b=>b.onclick=()=>{ decTipo=b.dataset.dt; disegna(); });
   $$("[data-dv]").forEach(b=>b.onclick=()=>{ const v=verbale(b.dataset.dv); vai(TIPI[v.tipo].vista, v.id); });
-  $("[data-exp]").onclick=()=>esporta({nome:`decisioni-${anno}`,
+  $("[data-exp]").onclick=()=>esporta({nome:`decisioni-${anno}`, titolo:`Decisioni ${anno}`,
     foglio:()=>fogliaDecisioni(anno,lista),
     righe:()=>{ const r=[["Data","Verbale","N.","Ora","Decisione","Votata","Entro il","Assolto"]];
       lista.forEach(x=>r.push([dataIT(x.v.data),titoloVerbale(x.v),x.i+1,x.ora,x.testo,
@@ -2366,7 +2319,7 @@ function collegaScheda(m){
   $("[data-esci]",root)?.addEventListener("click",()=>registraMovimento(m.id));
   $("[data-rientra]",root)?.addEventListener("click",()=>registraRientro(m.id));
   $("[data-espscheda]")?.addEventListener("click",()=>esporta({
-    nome:`scheda-${nomeMembro(m).replace(/\s+/g,"-").toLowerCase()}`,
+    nome:`scheda-${nomeMembro(m).replace(/\s+/g,"-").toLowerCase()}`, titolo:`Scheda di ${nomeMembro(m)}`,
     foglio:()=>fogliaScheda(m)}));
   $("[data-elimina]")?.addEventListener("click",()=>conferma(
     `Elimini definitivamente la scheda di ${esc(nomeMembro(m))}? Se invece se n'è andato, usa «Registra un'uscita»: così resta nello storico.`,
@@ -2692,7 +2645,9 @@ function esportaElenco(){
      <div class="avv n">Per l'uso di ogni giorno serve l'elenco degli <b>attuali</b>: chi è uscito resta in archivio, ma non sull'elenco che porti in chiesa.</div>`,
     azioni:[]});
   $$("[data-q]",el).forEach(b=>b.onclick=()=>{ const q=b.dataset.q; el.remove();
-    esporta({nome:`elenco-membri-${q}-${oggiISO()}`, foglio:()=>fogliaElenco(q), righe:()=>righeElenco(q)}); });
+    esporta({nome:`elenco-membri-${q}-${oggiISO()}`,
+      titolo:`Elenco membri — ${q==="attuali"?"attuali":q==="usciti"?"usciti":"tutti"}`,
+      foglio:()=>fogliaElenco(q), righe:()=>righeElenco(q)}); });
 }
 
 /* ---------- 7. INCARICHI ---------- */
@@ -2747,7 +2702,7 @@ VISTE.incarichi = ()=>{
   $("#annoInc")?.addEventListener("change",e=>{ DB.impostazioni.annoCorrente=+e.target.value; salva(); disegna(); });
   $$("[data-m]").forEach(b=>b.onclick=(ev)=>{ ev.stopPropagation(); vai("membri", b.dataset.m); });
   $("[data-rerugc]").onclick=()=>stampaRERUGC(anno);
-  $("[data-exp]").onclick=()=>esporta({nome:`incarichi-${anno}`,
+  $("[data-exp]").onclick=()=>esporta({nome:`incarichi-${anno}`, titolo:`Incarichi ${anno}`,
     foglio:()=>fogliaIncarichi(anno),
     righe:()=>{ const r=[["Carica","Cognome e nome","Telefono","Nato il","Dal","Al"]];
       incarichiAnno(anno).forEach(i=>{ const m=membro(i.membroId);
@@ -2843,13 +2798,13 @@ function fogliaRERUGC(anno){
 }
 function stampaRERUGC(anno){
   const buchi=mancantiRERUGC(anno);
-  if(!buchi.length){ esporta({nome:`rapporto-ufficiali-${anno}`,foglio:()=>fogliaRERUGC(anno)}); return; }
+  if(!buchi.length){ esporta({nome:`rapporto-ufficiali-${anno}`, titolo:`Rapporto ufficiali ${anno}`,foglio:()=>fogliaRERUGC(anno)}); return; }
   modale({titolo:"Mancano dei dati",corpo:
     `<div class="avv o">Il modulo del Campo chiede indirizzo, CAP, città, data di nascita e telefono di ogni membro del comitato esecutivo. Di queste persone manca qualcosa:</div>
      <div class="pn"><div class="pn-b t0">${buchi.map(x=>`<div class="rw"><div class="g"><div class="t" style="white-space:normal">${esc(x)}</div></div></div>`).join("")}</div></div>
      <div class="avv n">Si aggiungono nella scheda del membro, in Anagrafica. Puoi anche stampare così e completare a penna.</div>`,
     azioni:[{testo:"Annulla",fn:()=>{}},
-      {testo:"Stampa lo stesso",cls:"pri",destra:true,fn:()=>esporta({nome:`rapporto-ufficiali-${anno}`,foglio:()=>fogliaRERUGC(anno)})}]});
+      {testo:"Stampa lo stesso",cls:"pri",destra:true,fn:()=>esporta({nome:`rapporto-ufficiali-${anno}`, titolo:`Rapporto ufficiali ${anno}`,foglio:()=>fogliaRERUGC(anno)})}]});
 }
 function fogliaIncarichi(anno){
   const I=incarichiAnno(anno);
@@ -2873,7 +2828,7 @@ function fogliaIncarichi(anno){
 /* ---------- 8. FIRMA ---------- */
 const INCHIOSTRO=[27,58,107];
 function disegnaFirma(dopo, titolo, annullato){
-  const {el}=modale({titolo:titolo||"Firma col dito",corpo:
+  const {el}=modale({titolo:titolo||"Firma col dito",largo:true,corpo:
     `<div class="avv n">Firma nel riquadro come faresti su un foglio. Se sbagli, tocca «Cancella».</div>
      <div class="firma-box"><canvas id="cv"></canvas></div>`,
     azioni:[{testo:"Cancella",fn:()=>{ pul(); return false; }},{testo:"Annulla",fn:()=>{ if(annullato) annullato(); }},
@@ -3133,7 +3088,7 @@ function editorVerbale(v){
     ${v.letturaPrecedente?`<div class="avv v">Letto e approvato ${esc(v.letturaPrecedente.esito)}${
       v.letturaPrecedente.titolo?`: ${esc(v.letturaPrecedente.titolo)}`:""}.</div>`:""}
 
-    <div class="cols" style="grid-template-columns:1.05fr 1fr;flex:1">
+    <div class="cols" style="grid-template-columns:1.05fr 1fr">
       <div>
         <div class="pn"><div class="pn-h"><span class="lb">Intestazione</span><span class="cp b psh">numero automatico</span></div>
           <div class="pn-b">
@@ -3204,7 +3159,7 @@ function editorVerbale(v){
         ${prep?`<div class="pn gro"><div class="pn-b"><div class="vuoto">${isRio
             ? "Alla riorganizzazione non c'è ordine del giorno: c'è la riorganizzazione. Le cariche si votano quando comincia l'assemblea."
             : "Decisioni, cronologia e votazioni si aprono quando inizia la riunione."}</div></div></div>`
-        :`<div class="pn gro"><div class="pn-h"><span class="lb">Decisioni</span>
+        :bloccoVotazioni(v)+`<div class="pn gro"><div class="pn-h"><span class="lb">Decisioni</span>
             <span class="cp b psh">nascono dalle votazioni</span></div>
           <div class="pn-b">${v.decisioni.length?`<div class="lista">${v.decisioni.map((t,i)=>{
             const sc=(v.decisioniScadenza||[])[i];
@@ -3216,12 +3171,11 @@ function editorVerbale(v){
                   <button class="bt sm gh" data-sc="${i}">${sc&&sc.entro?"Cambia la scadenza":"+ Da fare entro il…"}</button>
                 </div></div>
               <span></span></div>`;}).join("")}</div>`
-            :`<div class="vuoto">Nessuna decisione. Le decisioni si prendono <b>votando</b>: apri una votazione qui sotto e, quando la approvi, la decisione compare qui già scritta.</div>`}
+            :`<div class="vuoto">Nessuna decisione. Le decisioni si prendono <b>votando</b>: apri una votazione qui sopra e, quando la approvi, la decisione compare qui già scritta.</div>`}
             <div class="avv n" style="font-size:12.9px">Ogni decisione nasce da una votazione: il testo si può correggere, il voto no.</div>
           </div></div>
          ${isRio?"":bloccoImpegni(v)}
-         ${(isRio||v.elezioni.length)?bloccoElezioni(v):""}
-         ${bloccoVotazioni(v)}`}
+         ${(isRio||v.elezioni.length)?bloccoElezioni(v):""}`}
       </div>
     </div>
   </div>`);
@@ -3264,7 +3218,7 @@ function editorVerbale(v){
   $("[data-leggi]")?.addEventListener("click",()=>leggiPrecedente(v,prec));
   $("[data-ante]")?.addEventListener("click",()=>modale({titolo:"Anteprima",largo:true,
     corpo:`<div style="max-width:820px;margin:0 auto">${fogliaVerbale(v)}</div>`,
-    azioni:[{testo:"Stampa",fn:()=>stampa(fogliaVerbale(v))},{testo:"Chiudi",cls:"pri",destra:true,fn:()=>{}}]}));
+    azioni:[{testo:"Stampa",fn:()=>stampa(fogliaVerbale(v),titoloVerbale(v)+" — "+dataBreve(v.data))},{testo:"Chiudi",cls:"pri",destra:true,fn:()=>{}}]}));
   $("[data-chiudi]")?.addEventListener("click",()=>chiudiVerbale(v));
   $("[data-salvacorr]")?.addEventListener("click",()=>salvaCorrezioni(v));
   $("[data-annullacorr]")?.addEventListener("click",()=>conferma(
@@ -3727,6 +3681,7 @@ function documentoVerbale(v){
   </div>`);
   $("[data-indietro]").onclick=()=>vai(T.vista);
   $("[data-stampa]").onclick=()=>esporta({nome:titoloVerbale(v)+" — "+dataBreve(v.data),foglio:()=>fogliaVerbale(v)});
+
   $("[data-riapri]")?.addEventListener("click",()=>conferma(
     "Riapri il verbale per correggerlo? Torna nello stato «aperto».",()=>{ v.stato="aperto"; salva(); disegna(); }));
   $("[data-firma]")?.addEventListener("click",()=>firmaVerbale(v));
@@ -4676,7 +4631,7 @@ function riepilogoPresenze(){
         ${legendaAndamento(serie, tend, "presenti")}
         ${serie.length?'<div class="avv n" style="margin-top:6px">Tocca un punto del grafico per aprire quel sabato. La riga tratteggiata lunga è la media del periodo; quella inclinata dice dove sta andando.</div>':""}
       </div></div>
-    <div class="cols" style="grid-template-columns:.85fr 1.15fr;flex:1">
+    <div class="cols" style="grid-template-columns:.85fr 1.15fr">
       <div><div class="pn gro"><div class="pn-h"><span class="lb">Sabati</span>
         <select id="annoSab" class="psh">${anni.map(x=>`<option value="${x}"${x===anno?" selected":""}>${x}</option>`).join("")}
           ${anni.length?"":`<option value="${anno}" selected>${anno}</option>`}</select></div>
@@ -4912,7 +4867,7 @@ function esportaPresenze(){
       {testo:"CSV",fn:(d)=>{ const a=num($('[data-c="__a"]',d).value), t=num($('[data-c="__t"]',d).value);
         scaricaCSV(righePresenze(a,t), `presenze-${a}${t?"-T"+t:""}.csv`); }},
       {testo:"Stampa / PDF",cls:"pri",destra:true,fn:(d)=>{ const a=num($('[data-c="__a"]',d).value), t=num($('[data-c="__t"]',d).value);
-        stampa(fogliaPresenze(a,t)); }}]});
+        stampa(fogliaPresenze(a,t), `Registro delle presenze ${a}${t?" — "+t+"° trimestre":""}`); }}]});
 }
 function righePresenze(anno,trim){
   const S=sabatiDelPeriodo(anno,trim||0);
@@ -5084,6 +5039,7 @@ VISTE.campo=()=>{
     ["infanti","b58","b913","g1417m","g1417n","g1820m","g1820n","adulti"].forEach(k=>M[k]=sds[k]);
     salva(); disegna(); });
   $("[data-exp]").onclick=()=>esporta({nome:`rapporto-${rapAnno}-T${rapTrim}`,
+    titolo:`Rapporto Trimestrale ${rapTrim} - ${rapAnno} ${DB.impostazioni.chiesa}`,
     excel:()=>rapportoXLSX(r,dati), excelEtichetta:"Modulo del Campo (Excel)",
     foglio:()=>fogliaRapporto(r,dati),
     /* le righe sono le stesse del foglio del Campo, nello stesso ordine e con gli stessi nomi:
@@ -5309,7 +5265,8 @@ VISTE.lettere=(arg)=>{
   $("[data-nuova]").onclick=nuovaLettera;
   if(l){
     $("[data-mod]").onclick=()=>modificaLettera(l);
-    $("[data-exp]").onclick=()=>esporta({nome:`lettera-${l.numero}-${l.anno}`,foglio:()=>fogliaLettera(l)});
+    $("[data-exp]").onclick=()=>esporta({nome:`lettera-${l.numero}-${l.anno}`,
+      titolo:`Lettera n. ${l.numero} del ${l.anno}${l.oggetto?" — "+l.oggetto:""}`, foglio:()=>fogliaLettera(l)});
     $("[data-vaim]")?.addEventListener("click",()=>vai("membri",l.membroId));
     $("[data-el]").onclick=()=>conferma("Elimini questa lettera dall'archivio?",()=>{
       DB.lettere=DB.lettere.filter(x=>x.id!==l.id); letSel=null; salva(); disegna(); });
@@ -5404,7 +5361,7 @@ VISTE.inventario=()=>{
           <div class="bd"><div class="t">${esc(o.nome)}</div>
             <div class="s">${esc(o.ubicazione||"ubicazione non indicata")}</div>
             <div class="s">${esc(o.categoria||"senza categoria")} · ${num(o.quantita)>1?num(o.quantita)+" pz":"1 pz"}${o.anno?" · "+o.anno:""}</div>
-            ${o.proprieta==="prestito"?`<div class="s" style="color:var(--ocra)">${esc(propNome(o))}</div>`:""}</div></div>`;}).join("")}</div>`
+            ${o.proprieta==="prestito"?`<div style="margin-top:4px"><span class="cp o">${esc(propNome(o))}</span></div>`:""}</div></div>`;}).join("")}</div>`
         :'<div class="vuoto">Nessun oggetto. Tocca «Nuova voce» oppure importa il file del tesoriere.</div>'}
     </div></div>
   </div>`);
@@ -5416,7 +5373,7 @@ VISTE.inventario=()=>{
   $$("[data-o]").forEach(b=>b.onclick=()=>voceInventario(DB.inventario.find(x=>x.id===b.dataset.o)));
   $("[data-nuovo]").onclick=()=>voceInventario(null);
   $("[data-imp]").onclick=importaInventario;
-  $("[data-exp]").onclick=()=>esporta({nome:`inventario-${oggiISO()}`,
+  $("[data-exp]").onclick=()=>esporta({nome:`inventario-${oggiISO()}`, titolo:"Inventario dei beni",
     foglio:fogliaInventario,
     righe:()=>{ const r=[["Categoria","Oggetto","Dove si trova","Quantità","Anno","Proprietà","In prestito da","Valore unitario","Valore totale","Foto","Note"]];
       DB.inventario.slice().sort((a,b)=>(a.categoria||"").localeCompare(b.categoria||"","it")
@@ -5860,7 +5817,7 @@ VISTE.guida=()=>{
   $("[data-stampa]").onclick=()=>stampa(`<div class="foglio">${intestazioneFoglio()}
     <h5>Guida della segreteria</h5><p class="st">${esc(DB.impostazioni.chiesa)}</p>
     ${GUIDA.map(x=>`<h6>${esc(x.t)}</h6><div class="guida-testo" style="font-family:var(--sans);font-size:.95em">${x.c()}</div>`).join("")}
-    ${piedeFoglio("guida")}</div>`);
+    ${piedeFoglio("guida")}</div>`, "Guida della segreteria");
 };
 
 
@@ -6137,7 +6094,7 @@ VISTE.manuale=()=>{
   $("[data-stampa]").onclick=()=>stampa(`<div class="foglio">${intestazioneFoglio()}
     <h5>Manuale per i responsabili della comunità</h5><p class="st">Conferenza Generale — Avventisti del Settimo Giorno Movimento di Riforma</p>
     ${MANUALE.map(x=>`<h6>${esc(x.t)}</h6><div class="guida-testo manuale" style="font-family:var(--sans);font-size:.95em">${x.c()}</div>`).join("")}
-    ${piedeFoglio("manuale")}</div>`);
+    ${piedeFoglio("manuale")}</div>`, "Manuale per i responsabili");
 };
 
 /* ---------- 14. IMPOSTAZIONI ---------- */
