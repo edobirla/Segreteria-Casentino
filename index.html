@@ -186,8 +186,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .rw .s{font-size:12.3px;color:var(--ink3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fl{display:flex;flex-direction:column;gap:4px;min-width:0}
 .fr{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
-input.i,select.i,textarea.i{border:1px solid var(--bordo);background:var(--sup);border-radius:5px;padding:7px 9px;font-size:14.6px;width:100%;min-height:34px}
-textarea.i{min-height:70px;resize:vertical;line-height:1.5}
+input.i,select.i,textarea.i{border:1px solid var(--bordo);background:var(--sup);border-radius:5px;padding:7px 9px;font-size:14.6px;line-height:20px;width:100%;height:34px;min-height:34px}
+textarea.i{height:auto;min-height:70px;resize:vertical;line-height:1.5}
+input.i[type=date],input.i[type=time]{-webkit-min-logical-width:0}
 input.i:disabled,select.i:disabled{background:var(--sup2);color:var(--ink2)}
 .au{background:var(--sup2);border:1px dashed var(--bordo);border-radius:5px;padding:7px 9px;font-size:14.6px;color:var(--ink2);display:flex;align-items:center;gap:7px;min-height:34px}
 .au-t{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--blu);background:var(--blu-t);padding:1px 5px;border-radius:2px;margin-left:auto}
@@ -295,9 +296,9 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 
 /* ===== documenti ===== */
 .foglio,.lettera{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.foglio{background:#fff;color:#1A1A18;font-family:var(--serif);font-size:12.9px;line-height:1.5;padding:26px 30px;border:1px solid var(--bordo)}
+.foglio{background:#fff;color:#1A1A18;font-family:var(--serif);font-size:12.2px;line-height:1.44;padding:26px 30px;border:1px solid var(--bordo)}
 .foglio .hd{display:flex;align-items:center;gap:9px;padding-bottom:9px;border-bottom:.5px solid #C9C9C1;margin-bottom:16px}
-.foglio .hd img{width:22px;flex:none}
+.foglio .hd img{width:34px;flex:none}
 .foglio .hd .ch{font-family:var(--sans);font-size:10.6px;line-height:1.3;color:#6C6C66}
 .foglio .hd .ch b{color:#1A1A18;font-weight:600;display:block}
 .foglio .hd .pg{margin-left:auto;font-family:var(--mono);font-size:10.1px;color:#9A9A94;text-align:right}
@@ -487,7 +488,7 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
   .rh.ann{color:#A33B2A;font-weight:600}
   .rh{display:block;height:13mm;padding-top:6mm;text-align:center;
     font-family:var(--mono);font-size:8.4pt;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A2}
-  .foglio,.lettera{border:0;padding:0;font-size:11.8pt;background:#fff}
+  .foglio,.lettera{border:0;padding:0;font-size:10.8pt;line-height:1.4;background:#fff}
   .foglio .dc,.foglio .fm,.lettera .firma,.nodo{break-inside:avoid}
   .foglio .bn,.foglio .modifiche,.foglio .pr span::before{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .foglio .du{display:grid!important}
@@ -756,7 +757,7 @@ const VUOTI_MEMBRO={cognome:"", nome:"", sesso:"M", nato:"", cittadinanza:"", te
 const VUOTI_EVENTO={tipo:"battesimo", data:"", officiante:"", luogo:"", chiesa:"", note:"",
   letteraId:null, allegati:[]};
 const VUOTI_LETTERA={anno:new Date().getFullYear(), numero:1, tipo:"Altro", oggetto:"", destinatario:"",
-  corpo:"", data:"", lingua:"it", chiesaId:null, firmatarioId:"", membroId:null, allegati:[]};
+  corpo:"", data:"", lingua:"it", chiesaId:null, firmatarioId:"", membroId:null, allegati:[], origine:"fatta"};
 const VUOTI_OGGETTO={nome:"", categoria:"", ubicazione:"", quantita:1, anno:null, valore:0,
   proprieta:"chiesa", prestatore:"", foto:null, note:""};
 const VUOTI_RAPPORTO={anno:new Date().getFullYear(), trimestre:1, inviato:false, manuali:{}};
@@ -1373,23 +1374,26 @@ function conferma(testo,fn){
 function avvisa(titolo,testo){ modale({titolo,corpo:`<p style="margin:0">${testo}</p>`,azioni:[{testo:"Ho capito",cls:"pri",destra:true,fn:()=>{}}]}); }
 
 /* ---------- esportazione: sempre a scelta fra PDF e CSV ---------- */
-function esporta({nome, titolo, foglio, righe, excel, excelEtichetta}){
+function esporta({nome, titolo, foglio, righe, excel, excelEtichetta, json, jsonEtichetta}){
   const cond=siPuoCondividere();
   const riga=(k,tit,sot,pri)=>`<div class="rw"><div class="g"><div class="t">${esc(tit)}</div><div class="s">${esc(sot)}</div></div>
     <button class="bt sm${pri?" pri":""}" data-e="${k}">${k==="pdf"?"Stampa":"Scarica"}</button>
-    ${k==="pdf"?"":`<button class="bt sm${cond?"":" gh"}" data-c="${k}">Condividi</button>`}</div>`;
+    <button class="bt sm${cond||k==="pdf"?"":" gh"}" data-c="${k}">Condividi</button></div>`;
   const {el} = modale({titolo:"Come vuoi esportarlo?", corpo:
     `<div class="pn"><div class="pn-b t0">
       ${excel?riga("xlsx", excelEtichetta||"Foglio Excel", "uguale al modulo del Campo, caselle gialle comprese", true):""}
       ${foglio?riga("pdf","Carta intestata","si apre la stampa: da lì scegli la stampante o «Salva come PDF»"):""}
       ${righe?riga("csv","Foglio di calcolo (CSV)","si apre con Numbers o Excel, per rifare i conti"):""}
+      ${json?riga("json",jsonEtichetta||"File per il tesoriere","file .json, con tutti i campi così come sono nell'app"):""}
     </div></div>
     <div class="avv n">${cond
       ? "<b>Condividi</b> apre il foglio di condivisione del dispositivo: AirDrop, WhatsApp, Mail, Salva su File. Non devi salvare prima."
       : "Su questo browser la condivisione diretta non c'è: i file si scaricano e poi li mandi tu. Sull'iPad il pulsante <b>Condividi</b> funziona."}
-      ${foglio?"<br>Il <b>PDF</b> passa dalla stampa: nell'anteprima dell'iPad c'è l'icona di condivisione in alto.":""}</div>`,
+      ${foglio?"<br>Per il <b>PDF</b>, «Condividi» apre la stampa: dall'anteprima dell'iPad tocca l'icona di condivisione in alto per mandarlo senza salvarlo prima.":""}</div>`,
     azioni:[]});
-  const dammi = k => k==="xlsx" ? excel() : {blob:bloccoCSV(righe()), nome:nome+".csv"};
+  const dammi = k => k==="xlsx" ? excel()
+    : k==="json" ? {blob:new Blob([JSON.stringify(json(),null,2)],{type:"application/json"}), nome:nome+".json"}
+    : {blob:bloccoCSV(righe()), nome:nome+".csv"};
   $$("[data-e]",el).forEach(b=>b.onclick=()=>{
     el.remove();
     if(b.dataset.e==="pdf") stampa(foglio(), titolo||nome);
@@ -1397,6 +1401,7 @@ function esporta({nome, titolo, foglio, righe, excel, excelEtichetta}){
   });
   $$("[data-c]",el).forEach(b=>b.onclick=()=>{
     el.remove();
+    if(b.dataset.c==="pdf"){ stampa(foglio(), titolo||nome); return; }
     const f=dammi(b.dataset.c);
     condividi(f.blob, f.nome, `${DB.impostazioni.chiesa} — ${f.nome}`);
   });
@@ -1567,6 +1572,17 @@ function scarica(blob,nome){
    si aspetta l'evento «afterprint», che arriva solo a stampa (o annullamento)
    avvenuti. Il titolo della pagina diventa per un attimo il nome di quel che
    si sta stampando: è lui che il sistema propone come nome del PDF. */
+/* su iPad, dentro l'app installata, tornare da un foglio di sistema (stampa, oppure
+   la Home premuta senza chiudere davvero l'app) a volte lascia la pagina ingrandita:
+   un piccolo tocco al viewport forza Safari a ridisegnare alla scala giusta. Non solo
+   dopo la stampa: anche quando l'app torna visibile dopo essere stata in background. */
+function correggiZoom(){
+  window.scrollTo(0,0);
+  const vp=document.querySelector('meta[name="viewport"]');
+  if(vp){ const c=vp.content; vp.content=c+","; setTimeout(()=>{ vp.content=c; },50); }
+}
+addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") correggiZoom(); });
+addEventListener("pageshow", correggiZoom);
 function stampa(html, titolo){
   const annullato = html.includes('class="wmk"');
   $("#stampa").innerHTML =
@@ -1582,11 +1598,7 @@ function stampa(html, titolo){
     if(fatto) return; fatto=true;
     removeEventListener("afterprint", rimettiAPosto);
     document.title = titoloPrima;
-    /* su iPad chiudere il foglio di stampa a volte lascia la pagina ingrandita:
-       un piccolo tocco al viewport e alla posizione forza il ridisegno giusto */
-    window.scrollTo(0,0);
-    const vp=document.querySelector('meta[name="viewport"]');
-    if(vp){ const c=vp.content; vp.content=c+","; setTimeout(()=>{ vp.content=c; },50); }
+    correggiZoom();
     setTimeout(()=>{ $("#stampa").innerHTML=""; },300);
   };
   addEventListener("afterprint", rimettiAPosto);
@@ -1882,6 +1894,41 @@ function prossimoTrimestre(){
   const fine=new Date(anno,t*3,0), g=Math.ceil((fine-o)/86400000);
   return {anno,trimestre:t,urgente:g<=20, etichetta:g>0?`tra ${g} giorni`:"scaduto"};
 }
+/* Se una decisione dice quando sarà il prossimo comitato/assemblea/riorganizzazione
+   (una data, oppure una ricorrenza tipo «un comitato al mese»), lo si vuole vedere
+   in dashboard senza dover riaprire il verbale. Lettura a naso del testo libero delle
+   decisioni: non è un calendario vero, solo un promemoria cliccabile. */
+const RE_DATA_IT = new RegExp(`\\b(\\d{1,2})\\s+(${MESI.join("|")})\\s+(\\d{4})\\b`,"gi");
+/* la frequenza deve nominare esplicitamente comitato/assemblea/riorganizzazione dentro
+   alla frase di ricorrenza: un «ogni» generico preso a sé rilegge frasi non c'entrano
+   niente (es. «ogni sei mesi» a proposito dei paganti) come se parlassero di riunioni. */
+const RE_FREQ_IT = /\b(?:un[o']?\s+(comitato|assemblea|riorganizzazione)\s+al\s+mese|(comitato|assemblea|riorganizzazione)\s+mensile|ogni\s+mese\s+(?:un[o']?\s+)?(comitato|assemblea|riorganizzazione))\b/i;
+const TIPO_DA_PAROLA = p => /riorganizzazion/i.test(p) ? "riorganizzazione" : /comitat/i.test(p) ? "comitato" : "raduno";
+function prossimiEventiDaDecisioni(){
+  const oggi=oggiISO(), prossimi={}, freq={};
+  const tipoDi = frase => /riorganizzazion/i.test(frase) ? "riorganizzazione"
+    : /comitat/i.test(frase) ? "comitato" : /assemble/i.test(frase) ? "raduno" : null;
+  DB.verbali.slice().sort((a,b)=>a.data.localeCompare(b.data)).forEach(v=>{
+    (v.decisioni||[]).forEach(testo=>{
+      String(testo||"").split(/(?<=[.!?])\s+/).forEach(frase=>{
+        const tipo=tipoDi(frase);
+        if(tipo){
+          let m; RE_DATA_IT.lastIndex=0;
+          while((m=RE_DATA_IT.exec(frase))){
+            const mese=MESI.findIndex(x=>x===m[2].toLowerCase())+1;
+            const iso=`${m[3]}-${String(mese).padStart(2,"0")}-${String(+m[1]).padStart(2,"0")}`;
+            if(iso>=oggi && (!prossimi[tipo]||iso<prossimi[tipo].data))
+              prossimi[tipo]={data:iso, v, frase:frase.trim()};
+          }
+        }
+        const fm=frase.match(RE_FREQ_IT);
+        if(fm){ const tf=TIPO_DA_PAROLA(fm[1]||fm[2]||fm[3]);
+          if(!freq[tf]) freq[tf]={testo:fm[0], v, frase:frase.trim()}; }
+      });
+    });
+  });
+  return {prossimi, freq};
+}
 VISTE.dashboard = ()=>{
   const anno=annoCorrente();
   const vb=DB.verbali.filter(v=>v.anno===anno);
@@ -1917,6 +1964,16 @@ VISTE.dashboard = ()=>{
   const senzaEntrata = attivi().filter(m=>!primaEntrata(m)?.data).length;
   if(senzaEntrata) daFare.push({s:String(senzaEntrata),r:false,t:"Schede senza data di ingresso",
     d:"manca battesimo o trasferimento in entrata",cp:"quando puoi",cpc:"",vai:"membri"});
+  const {prossimi:prossimiEv, freq:freqEv}=prossimiEventiDaDecisioni();
+  const NOME_SING={comitato:["il","comitato"],raduno:["l'","assemblea"],riorganizzazione:["la","riorganizzazione"]};
+  Object.entries(prossimiEv).forEach(([tipo,x])=>daFare.push({s:"↻",r:false,
+    t:`Prossim${NOME_SING[tipo][0]==="la"||NOME_SING[tipo][0]==="l'"?"a":"o"} ${NOME_SING[tipo][1]}: ${dataIT(x.data)}`,
+    d:`deciso ${titoloVerbale(x.v).toLowerCase()} del ${dataIT(x.v.data)}`,
+    cp:dataBreve(x.data),cpc:"",vai:TIPI[x.v.tipo].vista,arg:x.v.id}));
+  Object.entries(freqEv).forEach(([tipo,x])=>{ if(prossimiEv[tipo]) return;
+    daFare.push({s:"↻",r:false,t:`${TIPI[tipo].nome}: ${x.testo}`,
+      d:`deciso ${titoloVerbale(x.v).toLowerCase()} del ${dataIT(x.v.data)}`,
+      cp:"ricorrenza",cpc:"",vai:TIPI[x.v.tipo].vista,arg:x.v.id}); });
   const ubk=DB.impostazioni.ultimoBackup;
   if(!ubk) daFare.push({s:"BK",r:true,t:"Non hai mai fatto un backup",
     d:"i dati stanno solo su questo dispositivo",cp:"importante",cpc:"r"});
@@ -1980,12 +2037,6 @@ VISTE.dashboard = ()=>{
             ${saltano.length?`<div class="avv o" style="margin-top:6px"><b>Manca più della metà delle volte:</b>
               ${esc(saltano.map(z=>`${nomeMembro(z.m)} (${z.n} su ${ass.length})`).join(", "))}.</div>`:""}
           </div></div>`:""}
-        <div class="pn"><div class="pn-h"><span class="lb">Ultimi verbali</span></div>
-          <div class="pn-b t0">${DB.verbali.slice().sort((a,b)=>b.data.localeCompare(a.data)).slice(0,5).map(v=>
-            `<div class="rw cl" data-go="${TIPI[v.tipo].vista}" data-arg="${v.id}">
-              <div class="g"><div class="t">${esc(titoloVerbale(v))}</div><div class="s">${dataBreve(v.data)}</div></div>
-              <span class="cp ${statoCp(v.stato)}">${v.stato}</span></div>`).join("")
-            ||'<div class="vuoto">Nessun verbale.</div>'}</div></div>
       </div>
     </div>
   </div>`);
@@ -1993,7 +2044,8 @@ VISTE.dashboard = ()=>{
   $$("[data-per]").forEach(b=>b.onclick=()=>{ periodoSab=b.dataset.per; disegna(); });
   $$("[data-pera]").forEach(b=>b.onclick=()=>{ periodoAss=b.dataset.pera; disegna(); });
   $("[data-nuovo]").onclick=nuovoVerbaleScelta;
-  $("[data-sab]").onclick=()=>{ sabModo="elenco"; vai("presenze"); };
+  $("[data-sab]").onclick=()=>{ const d=sabatoScorso(); if(!sabatoDi(d)) nuovoSabato(d);
+    sabFunz="preghiera"; vai("presenze", d); };
 };
 const statoCp = s => s==="firmato"?"v" : s==="chiuso"?"" : s==="preparazione"?"b" : "r";
 
@@ -2347,13 +2399,15 @@ function modificaEvento(m, e){
   legaCampi(el,c);
 }
 function aggiungiAllegato(m,e){
-  const i=document.createElement("input"); i.type="file"; i.accept="image/*,application/pdf";
-  i.onchange=async ()=>{ const f=i.files[0]; if(!f) return;
-    let dato;
-    if(f.type.startsWith("image/")) dato = await riduciImmagine(f,1400,.78);
-    else dato = await new Promise(ok=>{ const r=new FileReader(); r.onload=()=>ok(r.result); r.readAsDataURL(f); });
-    const id = await mediaSalva(dato);
-    e.allegati=e.allegati||[]; e.allegati.push({id, nome:f.name, tipo:f.type});
+  const i=document.createElement("input"); i.type="file"; i.accept="image/*,application/pdf"; i.multiple=true;
+  i.onchange=async ()=>{ if(!i.files.length) return;
+    for(const f of i.files){
+      let dato;
+      if(f.type.startsWith("image/")) dato = await riduciImmagine(f,1400,.78);
+      else dato = await new Promise(ok=>{ const r=new FileReader(); r.onload=()=>ok(r.result); r.readAsDataURL(f); });
+      const id = await mediaSalva(dato);
+      e.allegati=e.allegati||[]; e.allegati.push({id, nome:f.name, tipo:f.type});
+    }
     salva(); disegna();
   };
   i.click();
@@ -3093,9 +3147,9 @@ function editorVerbale(v){
         <div class="pn"><div class="pn-h"><span class="lb">Intestazione</span><span class="cp b psh">numero automatico</span></div>
           <div class="pn-b">
             <div class="fr">${campo("Data","data",v.data,"date")}
-              <div class="fl"><span class="lb">Ora apertura</span><div style="display:flex;gap:6px">
-                <input class="i" type="time" data-c="oraApertura" value="${esc(v.oraApertura)}" ${prep?"disabled":""}>
-                ${prep?"":'<button class="bt sm" data-ora="oraApertura">adesso</button>'}</div></div>
+              <div class="fl"><span class="lb">Ora apertura</span><div style="display:flex;gap:6px;align-items:center">
+                <input class="i" type="time" data-c="oraApertura" value="${esc(v.oraApertura)}" ${prep?"disabled":""} style="min-width:0">
+                ${prep?"":'<button class="bt sm" data-ora="oraApertura" style="flex-shrink:0">adesso</button>'}</div></div>
               ${isRio?"":`<div class="fl"><span class="lb">Numero</span><div class="au">n. ${v.numero}<span class="au-t">auto</span></div></div>`}</div>
             <div class="fr">
               ${scelta("Presiede","presiedeId",v.presiedeId,[["","— nessuno —"],
@@ -3611,16 +3665,14 @@ function fogliaVerbale(v){
           return s.stato==="parziale" ? `in parte${s.uscita?", fino alle "+esc(s.uscita):""}` : ""; };
         const voce=(id,ruolo)=>{ const n=nota(id);
           return `<span${n?' class="pz"':""}>${esc(nomeMembro(id))} ${ruolo||n?`<em>${esc([ruolo,n].filter(Boolean).join(" · "))}</em>`:""}</span>`; };
-        const parz=(isCom?membriCom.map(p=>p.id):(v.presenti||[])).filter(id=>stq(id).stato==="parziale").length;
         const coda=`${v.ospiti?.length?` + ${v.ospiti.length} ospit${v.ospiti.length===1?"e":"i"}`:""}`;
-        const inParte=parz?` · ${parz} per parte della riunione`:"";
-        if(isCom) return `<span class="ls">Presenti — ${pres.length} di ${membriCom.length}${coda}${inParte}</span><div class="pr">
+        if(isCom) return `<span class="ls">Presenti — ${pres.length} di ${membriCom.length}${coda}</span><div class="pr">
             ${pres.map(p=>voce(p.id,p.ruolo.toLowerCase())).join("")}
             ${righeOsp}
             ${ass.map(p=>`<span class="as">${esc(nomeMembro(p.id))} <em>assente</em></span>`).join("")}</div>`;
         const dentroR=attivi().filter(m=>cera(m.id)).sort(perNome);
         const assR=attivi().filter(m=>!cera(m.id));
-        return `<span class="ls">Presenti — ${dentroR.length}${coda}${inParte}</span>
+        return `<span class="ls">Presenti — ${dentroR.length}${coda}</span>
           <div class="pr${fitte?" fitte":""}">${dentroR.map(m=>voce(m.id,"")).join("")
             ||"<span class='as'>non registrati per nome</span>"}${righeOsp}</div>
           ${assR.length?`<span class="ls" style="margin-top:9px">Assenti — ${assR.length}</span>
@@ -4579,7 +4631,7 @@ function presenzeTrimestri(id, anno){
   }).filter(x=>x.sabati.length);
 }
 
-let sabData=null, sabFunz="preghiera", sabCerca="", sabModo="elenco", sabAnno=null;
+let sabData=null, sabFunz="preghiera", sabCerca="", sabModo="elenco", sabAnno=null, sabTrim="";
 let periodoSab="6m", periodoAss="1a";
 VISTE.presenze=(arg)=>{
   ordinaSabati();
@@ -4591,7 +4643,8 @@ VISTE.presenze=(arg)=>{
 function riepilogoPresenze(){
   const anni=[...new Set(DB.sabati.map(s=>s.data.slice(0,4)))].sort((a,b)=>b.localeCompare(a));
   const anno = sabAnno && anni.includes(sabAnno) ? sabAnno : (anni[0]||String(new Date().getFullYear()));
-  const elenco = sabatiOrdinati().filter(s=>s.data.startsWith(anno));
+  const elenco = sabatiOrdinati().filter(s=>s.data.startsWith(anno)
+    &&(!sabTrim||Math.ceil(+s.data.slice(5,7)/3)===+sabTrim));
   const validi = elenco.filter(sabatoNormale);
   const s = sabatoDi(sabData) || elenco[0] || null;
   if(s) sabData=s.data;
@@ -4633,6 +4686,8 @@ function riepilogoPresenze(){
       </div></div>
     <div class="cols" style="grid-template-columns:.85fr 1.15fr">
       <div><div class="pn gro"><div class="pn-h"><span class="lb">Sabati</span>
+        <select id="trimSab" class="psh"><option value=""${sabTrim?"":" selected"}>Tutto l'anno</option>
+          ${[1,2,3,4].map(t=>`<option value="${t}"${+sabTrim===t?" selected":""}>${t}° trimestre</option>`).join("")}</select>
         <select id="annoSab" class="psh">${anni.map(x=>`<option value="${x}"${x===anno?" selected":""}>${x}</option>`).join("")}
           ${anni.length?"":`<option value="${anno}" selected>${anno}</option>`}</select></div>
         <div class="pn-b t0">${elenco.length?elenco.map(x=>{ const pk=piccoSabato(x);
@@ -4651,6 +4706,7 @@ function riepilogoPresenze(){
   $("[data-oggi]").onclick=()=>{ if(!sabatoDi(oggi)) nuovoSabato(oggi);
     sabData=oggi; sabFunz="preghiera"; sabModo="segna"; disegna(); };
   $("#annoSab").onchange=e=>{ sabAnno=e.target.value; sabData=null; disegna(); };
+  $("#trimSab").onchange=e=>{ sabTrim=e.target.value; sabData=null; disegna(); };
   $$("[data-sb]").forEach(b=>b.onclick=()=>{ sabData=b.dataset.sb; disegna(); });
   $$("[data-per]").forEach(b=>b.onclick=()=>{ periodoSab=b.dataset.per; disegna(); });
   $("[data-apri]")?.addEventListener("click",()=>{ sabModo="segna"; disegna(); });
@@ -5211,7 +5267,7 @@ function fogliaRapporto(r,d){
 }
 
 /* ---------- 11. LETTERE ---------- */
-let letSel=null, letAnno=null, letTipo="tutte", letCerca="";
+let letSel=null, letAnno=null, letTipo="tutte", letCerca="", letOrigine="tutte";
 const TIPI_LETTERA=["Trasferimento","Circolare","Convocazione","Al Campo","Richiamo","Dimissioni","Esclusione","Altro"];
 /* una lettera nuova parte vuota: oggetto, destinatario e testo li scrive lui */
 function nuovaLettera(){ modificaLettera(null, null); }
@@ -5221,6 +5277,7 @@ VISTE.lettere=(arg)=>{
   const anno = letAnno && anni.includes(letAnno) ? letAnno : (anni[0]||new Date().getFullYear());
   let lista=DB.lettere.filter(l=>l.anno===anno);
   if(letTipo!=="tutte") lista=lista.filter(l=>l.tipo===letTipo);
+  if(letOrigine!=="tutte") lista=lista.filter(l=>(l.origine||"fatta")===letOrigine);
   const ql=letCerca.trim().toLowerCase();
   if(ql) lista=lista.filter(l=>((l.oggetto||"")+" "+(l.destinatario||"")+" "+(l.corpo||"")+" n."+l.numero).toLowerCase().includes(ql));
   lista.sort((a,b)=>b.data.localeCompare(a.data)||b.numero-a.numero);
@@ -5228,7 +5285,7 @@ VISTE.lettere=(arg)=>{
   const l=DB.lettere.find(x=>x.id===letSel);
   const conta=t=>DB.lettere.filter(x=>x.anno===anno&&(t==="tutte"||x.tipo===t)).length;
   schermo(testata("Lettere",`${DB.lettere.length} in archivio`,
-    `<button class="bt pri psh" data-nuova>Nuova lettera</button>`) +
+    `<button class="bt psh" data-ricevuta>Lettera ricevuta</button><button class="bt pri psh" data-nuova>Nuova lettera</button>`) +
   `<div class="cn">
     ${filtro("qlet2",letCerca,"Cerca oggetto, destinatario o testo…")}
     <div class="tab"><span class="lb">Anno</span>
@@ -5238,22 +5295,31 @@ VISTE.lettere=(arg)=>{
       <button class="${letTipo==="tutte"?"on":""}" data-lt="tutte">Tutte &nbsp;${conta("tutte")}</button>
       ${TIPI_LETTERA.map(t=>conta(t)?`<button class="${letTipo===t?"on":""}" data-lt="${t}">${t} &nbsp;${conta(t)}</button>`:"").join("")}
     </div>
+    <div class="tab"><span class="lb">Origine</span>
+      <button class="${letOrigine==="tutte"?"on":""}" data-lo="tutte">Tutte</button>
+      <button class="${letOrigine==="fatta"?"on":""}" data-lo="fatta">Fatte da me</button>
+      <button class="${letOrigine==="ricevuta"?"on":""}" data-lo="ricevuta">Ricevute</button>
+    </div>
     <div class="cols" style="grid-template-columns:.8fr 1.2fr;flex:1">
       <div><div class="pn gro"><div class="pn-h"><span class="lb">${anno}</span></div>
         <div class="pn-b t0">${lista.length?lista.map(x=>
           `<div class="rw cl ${x.id===letSel?"on":""}" data-l="${x.id}">
             <span class="cp ${x.tipo==="Trasferimento"?"b":x.tipo==="Circolare"?"v":"o"}">${esc(x.tipo||"lettera")}</span>
-            <div class="g"><div class="t">${esc(x.oggetto||"senza oggetto")}</div>
+            <div class="g"><div class="t">${esc(x.oggetto||"senza oggetto")}${(x.origine==="ricevuta")?' <span class="cp o">ricevuta</span>':""}</div>
               <div class="s">n. ${x.numero} · ${dataBreve(x.data)}${x.lingua&&x.lingua!=="it"?" · "+esc(LINGUE[x.lingua]||x.lingua):""}${x.membroId?" · "+esc(nomeMembro(x.membroId)):""}</div></div></div>`).join("")
           :'<div class="vuoto">Nessuna lettera per questo anno.</div>'}</div></div></div>
       <div><div class="pn gro">
-        ${l?`<div class="pn-h"><span class="lb">n. ${l.numero} del ${l.anno} · ${esc(LINGUE[l.lingua]||l.lingua)}</span>
+        ${l?`<div class="pn-h"><span class="lb">n. ${l.numero} del ${l.anno} · ${esc(LINGUE[l.lingua]||l.lingua)}${l.origine==="ricevuta"?" · ricevuta":""}</span>
           <button class="bt sm psh" data-mod>Modifica</button>
+          <button class="bt sm" data-all>${(l.allegati||[]).length?`${l.allegati.length} allegat${l.allegati.length>1?"i":"o"}`:"Scansiona / allega"}</button>
           ${l.membroId?`<button class="bt sm" data-vaim="${l.membroId}">Scheda</button>`:""}
-          <button class="bt sm" data-exp>Esporta</button>
+          ${l.origine==="ricevuta"?"":`<button class="bt sm" data-exp>Esporta</button>`}
           <button class="bt sm dan" data-el>Elimina</button></div>
           <div class="pn-b" style="background:#fff;align-items:center">
-            <div style="width:min(760px,100%)">${fogliaLettera(l)}</div></div>`
+            <div style="width:min(760px,100%)">${l.origine==="ricevuta"
+              ?`<div class="avv n">Lettera ricevuta dall'esterno: non ha una carta intestata da stampare, ma può avere una scansione allegata (tocca «Scansiona / allega»).</div>
+                ${l.corpo?`<div class="pn" style="margin-top:10px"><div class="pn-h"><span class="lb">Testo / note</span></div><div class="pn-b">${esc(l.corpo).replace(/\n/g,"<br>")}</div></div>`:""}`
+              :fogliaLettera(l)}</div></div>`
           :'<div class="vuoto">Nessuna lettera selezionata.</div>'}
       </div></div>
     </div>
@@ -5262,11 +5328,14 @@ VISTE.lettere=(arg)=>{
   collegaFiltro("qlet2",v=>letCerca=v);
   $("#la").onchange=e=>{ letAnno=+e.target.value; letSel=null; disegna(); };
   $$("[data-lt]").forEach(b=>b.onclick=()=>{ letTipo=b.dataset.lt; letSel=null; disegna(); });
+  $$("[data-lo]").forEach(b=>b.onclick=()=>{ letOrigine=b.dataset.lo; letSel=null; disegna(); });
   $("[data-nuova]").onclick=nuovaLettera;
+  $("[data-ricevuta]").onclick=()=>modificaLettera(null,null,"ricevuta");
   if(l){
     $("[data-mod]").onclick=()=>modificaLettera(l);
-    $("[data-exp]").onclick=()=>esporta({nome:`lettera-${l.numero}-${l.anno}`,
-      titolo:`Lettera n. ${l.numero} del ${l.anno}${l.oggetto?" — "+l.oggetto:""}`, foglio:()=>fogliaLettera(l)});
+    $("[data-all]").onclick=()=>vediAllegati(null,l);
+    $("[data-exp]")?.addEventListener("click",()=>esporta({nome:`lettera-${l.numero}-${l.anno}`,
+      titolo:`Lettera n. ${l.numero} del ${l.anno}${l.oggetto?" — "+l.oggetto:""}`, foglio:()=>fogliaLettera(l)}));
     $("[data-vaim]")?.addEventListener("click",()=>vai("membri",l.membroId));
     $("[data-el]").onclick=()=>conferma("Elimini questa lettera dall'archivio?",()=>{
       DB.lettere=DB.lettere.filter(x=>x.id!==l.id); letSel=null; salva(); disegna(); });
@@ -5294,9 +5363,9 @@ function fogliaLettera(l){
       <span>${I.numeroLettere?esc(E.num(l.numero,l.anno)):""}</span></div>
   </div>`;
 }
-function modificaLettera(l, modello){
+function modificaLettera(l, modello, origine){
   const nuovo=!l, anno=new Date().getFullYear();
-  if(nuovo) l={id:uid(),anno,numero:prossimoNumeroLettera(anno),data:oggiISO(),tipo:"",lingua:"it",
+  if(nuovo) l={id:uid(),anno,numero:prossimoNumeroLettera(anno),data:oggiISO(),tipo:"",lingua:"it",origine:origine||"fatta",
     destinatario:"",oggetto:"",corpo:"",chiusa:`Fraterni saluti nel Signore,\nper il Comitato della ${DB.impostazioni.chiesa}`,
     firmatarioId:chiHa("Segretario")[0]||"",membroId:null,allegati:[]};
   if(nuovo && modello){
@@ -5305,15 +5374,19 @@ function modificaLettera(l, modello){
     l.destinatario=val(modello.destinatario)||""; l.corpo=val(modello.corpo);
     if(modello.chiusa) l.chiusa=val(modello.chiusa);
   }
+  const ric=l.origine==="ricevuta";
   const c=JSON.parse(JSON.stringify(l));
-  const {el}=modale({titolo:nuovo?"Nuova lettera":"Modifica lettera",largo:true,corpo:
+  const {el}=modale({titolo:nuovo?(ric?"Lettera ricevuta":"Nuova lettera"):"Modifica lettera",largo:true,corpo:
     `<div class="fr">${scelta("Tipo","tipo",c.tipo,[["","— senza tipo —"],...TIPI_LETTERA])}${campo("Data","data",c.data,"date")}
-      ${scelta("Lingua","lingua",c.lingua,Object.entries(LINGUE))}
-      ${sceltaMembro("Firma","firmatarioId",c.firmatarioId,DB.membri)}</div>
-     ${campo("Destinatario","destinatario",c.destinatario,"area")}
+      ${scelta("Origine","origine",c.origine||"fatta",[["fatta","Scritta da me"],["ricevuta","Ricevuta"]])}</div>
+     <div class="fr">${sceltaMembro("Collegata a un membro","membroId",c.membroId,DB.membri)}
+      ${ric?"":scelta("Lingua","lingua",c.lingua,Object.entries(LINGUE))}
+      ${ric?"":sceltaMembro("Firma","firmatarioId",c.firmatarioId,DB.membri)}</div>
+     ${ric?"":campo("Destinatario","destinatario",c.destinatario,"area")}
      ${campo("Oggetto","oggetto",c.oggetto)}
-     ${campo("Testo","corpo",c.corpo,"area",'style="min-height:200px"')}
-     ${campo("Chiusa","chiusa",c.chiusa,"area")}`,
+     ${campo(ric?"Testo / note":"Testo","corpo",c.corpo,"area",'style="min-height:200px"')}
+     ${ric?"":campo("Chiusa","chiusa",c.chiusa,"area")}
+     ${ric?'<div class="avv n">Dopo aver salvato, apri la lettera e tocca «Scansiona / allega» per aggiungere la foto o la scansione del foglio ricevuto.</div>':""}`,
     azioni:[{testo:"Annulla",fn:()=>{}},{testo:"Salva",cls:"pri",destra:true,fn:()=>{
       Object.assign(l,c); if(nuovo) DB.lettere.push(l); letSel=l.id; letAnno=l.anno; salva(); disegna(); }}]});
   legaCampi(el,c);
@@ -5338,7 +5411,7 @@ VISTE.inventario=()=>{
       .toLowerCase().includes(invCerca.toLowerCase())));
   const inPrestito=DB.inventario.filter(o=>o.proprieta==="prestito").length;
   const totale=DB.inventario.reduce((a,o)=>a+num(o.valore)*Math.max(1,num(o.quantita)||1),0);
-  schermo(testata("Inventario",`${DB.inventario.length} voci · valore totale ${totale.toLocaleString("it-IT")} €`,
+  schermo(testata("Inventario",`${DB.inventario.length} voci · valore totale ${totale.toLocaleString("it-IT").replace(/\./g," ")} €`,
     `<button class="bt psh" data-imp>Importa dal tesoriere</button>
      <button class="bt" data-exp>Esporta</button>
      <button class="bt pri" data-nuovo>Nuova voce</button>`) +
@@ -5361,7 +5434,7 @@ VISTE.inventario=()=>{
           <div class="bd"><div class="t">${esc(o.nome)}</div>
             <div class="s">${esc(o.ubicazione||"ubicazione non indicata")}</div>
             <div class="s">${esc(o.categoria||"senza categoria")} · ${num(o.quantita)>1?num(o.quantita)+" pz":"1 pz"}${o.anno?" · "+o.anno:""}</div>
-            ${o.proprieta==="prestito"?`<div style="margin-top:4px"><span class="cp o">${esc(propNome(o))}</span></div>`:""}</div></div>`;}).join("")}</div>`
+            ${o.proprieta==="prestito"?`<div style="margin-top:4px"><span class="cp o" style="white-space:normal;display:inline-block">${esc(propNome(o))}</span></div>`:""}</div></div>`;}).join("")}</div>`
         :'<div class="vuoto">Nessun oggetto. Tocca «Nuova voce» oppure importa il file del tesoriere.</div>'}
     </div></div>
   </div>`);
@@ -5375,6 +5448,7 @@ VISTE.inventario=()=>{
   $("[data-imp]").onclick=importaInventario;
   $("[data-exp]").onclick=()=>esporta({nome:`inventario-${oggiISO()}`, titolo:"Inventario dei beni",
     foglio:fogliaInventario,
+    json:()=>DB.inventario, jsonEtichetta:"File per il tesoriere (JSON)",
     righe:()=>{ const r=[["Categoria","Oggetto","Dove si trova","Quantità","Anno","Proprietà","In prestito da","Valore unitario","Valore totale","Foto","Note"]];
       DB.inventario.slice().sort((a,b)=>(a.categoria||"").localeCompare(b.categoria||"","it")
         ||(a.ubicazione||"").localeCompare(b.ubicazione||"","it")||(a.nome||"").localeCompare(b.nome||"","it"))
@@ -5388,7 +5462,7 @@ function fogliaInventario(){
      vanno a capo. Le righe si contano a colpo d'occhio, categoria per categoria. */
   const per={}; DB.inventario.forEach(o=>{ (per[o.categoria||"Senza categoria"]=per[o.categoria||"Senza categoria"]||[]).push(o); });
   const val=o=>num(o.valore)*Math.max(1,num(o.quantita)||1);
-  const eur=n=>n?n.toLocaleString("it-IT",{minimumFractionDigits:0})+" €":"—";
+  const eur=n=>n?n.toLocaleString("it-IT",{minimumFractionDigits:0}).replace(/\./g," ")+" €":"—";
   const totale=DB.inventario.reduce((a,o)=>a+val(o),0);
   const pezzi=DB.inventario.reduce((a,o)=>a+Math.max(1,num(o.quantita)||1),0);
   const prest=DB.inventario.filter(o=>o.proprieta==="prestito");
