@@ -6940,8 +6940,11 @@ VISTE.manuale=()=>{
 
 /* ---------- 14. IMPOSTAZIONI ---------- */
 let impSez="documenti";
+/* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
+   nuova o e' rimasta quella di prima in memoria. */
+const VERSIONE_APP="22 · 4 settembre 2026";
 const SEZ_IMP=[["documenti","Documenti"],["campo","Dati per il Campo"],["chiese","Chiese conosciute"],
-  ["presenze","Presenze"],["dati","Dati e spazio"],["firma","La tua firma"],["prova","Dati di prova"]];
+  ["presenze","Presenze"],["dati","Dati e spazio"],["firma","La tua firma"],["prova","Archivio e versione"]];
 VISTE.impostazioni=async ()=>{
   const I=DB.impostazioni;
   const sp=await spazioUsato();
@@ -7044,9 +7047,14 @@ VISTE.impostazioni=async ()=>{
         </div></div>
     </div>
     <div style="${S("prova")?"":"display:none"}">
-      <div class="pn gro"><div class="pn-h"><span class="lb">Dati di prova</span></div>
+      <div class="pn gro"><div class="pn-h"><span class="lb">Archivio e versione</span>
+          <span class="cp b psh">versione ${esc(VERSIONE_APP)}</span></div>
         <div class="pn-b">
-          <div class="avv b">Adesso l'app contiene <b>dati di prova</b>: alcuni membri veri, cinque verbali, tre lettere e undici oggetti. Quando siamo pronti li sostituiamo con l'archivio vero.</div>
+          <div class="avv b">Questa versione dell'app porta con sé l'<b>archivio della chiesa</b>:
+            48 membri, gli incarichi 2026, dieci verbali firmati (compresa la riorganizzazione del
+            24 gennaio) e 69 voci di inventario con le foto.<br>
+            L'archivio non entra da solo: quello che hai sul dispositivo resta com'è finché non tocchi
+            il pulsante qui sotto. <b>Fai prima un backup.</b></div>
           <button class="bt dan" data-reset>Svuota tutto e riparti da zero</button>
           <button class="bt" data-ricarica>Ricarica l'archivio della chiesa</button>
         </div></div>
