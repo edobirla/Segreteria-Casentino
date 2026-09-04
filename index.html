@@ -188,7 +188,14 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fr{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 input.i,select.i,textarea.i{border:1px solid var(--bordo);background:var(--sup);border-radius:5px;padding:7px 9px;font-size:14.6px;line-height:20px;width:100%;height:34px;min-height:34px}
 textarea.i{height:auto;min-height:70px;resize:vertical;line-height:1.5}
-input.i[type=date]{-webkit-min-logical-width:0}
+input.i[type=date]{-webkit-min-logical-width:0;min-width:0;max-width:100%}
+/* iOS: il calendario nativo si porta dietro le sue misure, esce dalla casella e si
+   sovrappone al campo di fianco. Spento l'aspetto nativo diventa una casella come
+   le altre — il calendario si apre lo stesso al tocco. Solo su iOS: sul Mac va gia' bene. */
+@supports (-webkit-touch-callout:none){
+  input.i[type=date]{-webkit-appearance:none;appearance:none;text-align:left;
+    height:34px;min-height:34px;line-height:20px;padding:7px 9px;display:block}
+}
 input.i:disabled,select.i:disabled{background:var(--sup2);color:var(--ink2)}
 .au{background:var(--sup2);border:1px dashed var(--bordo);border-radius:5px;padding:7px 9px;font-size:14.6px;color:var(--ink2);display:flex;align-items:center;gap:7px;min-height:34px}
 .au-t{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--blu);background:var(--blu-t);padding:1px 5px;border-radius:2px;margin-left:auto}
@@ -480,13 +487,13 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
   #app{display:none!important}
   #stampa{display:block!important}
   .pgw{width:100%;border-collapse:collapse;table-layout:fixed}
-  .pgw>tbody>tr>td{padding:0 10mm;vertical-align:top}
+  .pgw>tbody>tr>td{padding:0 7mm;vertical-align:top}
   .pgw>thead>tr>td,.pgw>tfoot>tr>td{padding:0}
-  .pgw .sp{height:11mm}
+  .pgw .sp{height:7mm}
   /* la testata sta dentro il thead: il browser la ripete su ogni pagina, centrata.
      Deve contenere del testo, se no la cella si schiaccia e il margine sparisce. */
   .rh.ann{color:#A33B2A;font-weight:600}
-  .rh{display:block;height:13mm;padding-top:6mm;text-align:center;
+  .rh{display:block;height:8mm;padding-top:4mm;text-align:center;
     font-family:var(--mono);font-size:8.4pt;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A2}
   .foglio,.lettera{border:0;padding:0;font-size:10.8pt;line-height:1.4;background:#fff}
   .foglio .dc,.foglio .fm,.lettera .firma,.nodo{break-inside:avoid}
@@ -2431,8 +2438,12 @@ function modificaEvento(m, e){
       Object.assign(e,c); if(nuovo){ m.storico=m.storico||[]; m.storico.push(e); } salva(); disegna(); }}]});
   legaCampi(el,c);
 }
-function aggiungiAllegato(m,e){
-  const i=document.createElement("input"); i.type="file"; i.accept="image/*,application/pdf"; i.multiple=true;
+/* foto=true: sull'iPad apre direttamente la fotocamera, per fotografare un foglio
+   ricevuto senza passare dalla galleria. */
+function aggiungiAllegato(m,e,foto){
+  const i=document.createElement("input"); i.type="file";
+  i.accept = foto ? "image/*" : "image/*,application/pdf";
+  if(foto) i.capture="environment"; else i.multiple=true;
   i.onchange=async ()=>{ if(!i.files.length) return;
     for(const f of i.files){
       let dato;
@@ -2451,7 +2462,8 @@ function vediAllegati(m,e){
         <button class="bt sm psh" data-ap="${i}">Apri</button><button class="bt sm dan" data-ax="${i}">Togli</button></div>
       ${a.tipo.startsWith("image/")?`<div class="pn-b"><img src="${img(a.id)}" style="max-height:340px;margin:0 auto"></div>`:""}</div>`).join("")
       || '<div class="vuoto">Nessun allegato.</div>',
-    azioni:[{testo:"Aggiungi un allegato",fn:()=>{ aggiungiAllegato(m,e); }},
+    azioni:[{testo:"Fotografa il foglio",fn:()=>{ aggiungiAllegato(m,e,true); }},
+            {testo:"Aggiungi un allegato",fn:()=>{ aggiungiAllegato(m,e); }},
             {testo:"Chiudi",cls:"pri",destra:true,fn:()=>{}}]});
   $$("[data-ap]",el).forEach(b=>b.onclick=()=>{
     const a=e.allegati[+b.dataset.ap];
@@ -5318,7 +5330,7 @@ VISTE.lettere=(arg)=>{
   const l=DB.lettere.find(x=>x.id===letSel);
   const conta=t=>DB.lettere.filter(x=>x.anno===anno&&(t==="tutte"||x.tipo===t)).length;
   schermo(testata("Lettere",`${DB.lettere.length} in archivio`,
-    `<button class="bt psh" data-ricevuta>Lettera ricevuta</button><button class="bt pri psh" data-nuova>Nuova lettera</button>`) +
+    `<button class="bt pri psh" data-nuova>Nuova lettera</button>`) +
   `<div class="cn">
     ${filtro("qlet2",letCerca,"Cerca oggetto, destinatario o testo…")}
     <div class="tab"><span class="lb">Anno</span>
@@ -5363,7 +5375,6 @@ VISTE.lettere=(arg)=>{
   $$("[data-lt]").forEach(b=>b.onclick=()=>{ letTipo=b.dataset.lt; letSel=null; disegna(); });
   $$("[data-lo]").forEach(b=>b.onclick=()=>{ letOrigine=b.dataset.lo; letSel=null; disegna(); });
   $("[data-nuova]").onclick=nuovaLettera;
-  $("[data-ricevuta]").onclick=()=>modificaLettera(null,null,"ricevuta");
   if(l){
     $("[data-mod]").onclick=()=>modificaLettera(l);
     $("[data-all]").onclick=()=>vediAllegati(null,l);
@@ -5396,7 +5407,10 @@ function fogliaLettera(l){
       <span>${I.numeroLettere?esc(E.num(l.numero,l.anno)):""}</span></div>
   </div>`;
 }
-function modificaLettera(l, modello, origine){
+/* "bozza" serve quando si cambia l'origine a meta' compilazione: la finestra si
+   ridisegna da capo (i campi della carta intestata non servono per una lettera
+   ricevuta) tenendo quel che era gia' stato scritto. */
+function modificaLettera(l, modello, origine, bozza){
   const nuovo=!l, anno=new Date().getFullYear();
   if(nuovo) l={id:uid(),anno,numero:prossimoNumeroLettera(anno),data:oggiISO(),tipo:"",lingua:"it",origine:origine||"fatta",
     destinatario:"",oggetto:"",corpo:"",chiusa:`Fraterni saluti nel Signore,\nper il Comitato della ${DB.impostazioni.chiesa}`,
@@ -5407,8 +5421,8 @@ function modificaLettera(l, modello, origine){
     l.destinatario=val(modello.destinatario)||""; l.corpo=val(modello.corpo);
     if(modello.chiusa) l.chiusa=val(modello.chiusa);
   }
-  const ric=l.origine==="ricevuta";
-  const c=JSON.parse(JSON.stringify(l));
+  const c = bozza || JSON.parse(JSON.stringify(l));
+  const ric = (c.origine||"fatta")==="ricevuta";
   const {el}=modale({titolo:nuovo?(ric?"Lettera ricevuta":"Nuova lettera"):"Modifica lettera",largo:true,corpo:
     `<div class="fr">${scelta("Tipo","tipo",c.tipo,[["","— senza tipo —"],...TIPI_LETTERA])}${campo("Data","data",c.data,"date")}
       ${scelta("Origine","origine",c.origine||"fatta",[["fatta","Scritta da me"],["ricevuta","Ricevuta"]])}</div>
@@ -5419,10 +5433,19 @@ function modificaLettera(l, modello, origine){
      ${campo("Oggetto","oggetto",c.oggetto)}
      ${campo(ric?"Testo / note":"Testo","corpo",c.corpo,"area",'style="min-height:200px"')}
      ${ric?"":campo("Chiusa","chiusa",c.chiusa,"area")}
-     ${ric?'<div class="avv n">Dopo aver salvato, apri la lettera e tocca «Scansiona / allega» per aggiungere la foto o la scansione del foglio ricevuto.</div>':""}`,
+     ${ric?`<div class="avv n">Del foglio che hai ricevuto puoi tenere qui la foto o la scansione.
+       <div style="margin-top:9px;display:flex;gap:8px;flex-wrap:wrap">
+         <button class="bt" data-foto>Fotografa il foglio</button>
+         <button class="bt" data-scan>Scegli una foto o un file</button></div></div>`:""}`,
     azioni:[{testo:"Annulla",fn:()=>{}},{testo:"Salva",cls:"pri",destra:true,fn:()=>{
       Object.assign(l,c); if(nuovo) DB.lettere.push(l); letSel=l.id; letAnno=l.anno; salva(); disegna(); }}]});
   legaCampi(el,c);
+  $('[data-c="origine"]',el)?.addEventListener("change", e=>{
+    c.origine=e.target.value; el.remove(); modificaLettera(nuovo?null:l, null, null, c); });
+  /* ponytail: se annulla dopo aver fotografato, l'immagine resta nell'archivio senza
+     nessuno che la usi. Poca roba, si ripulisce da sola al prossimo svuota-tutto. */
+  $("[data-foto]",el)?.addEventListener("click", ()=>aggiungiAllegato(null,c,true));
+  $("[data-scan]",el)?.addEventListener("click", ()=>aggiungiAllegato(null,c));
 }
 </script>
 
