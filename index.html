@@ -6767,7 +6767,7 @@ VISTE.impostazioni=async ()=>{
         <div class="pn-b">
           <div class="avv b">Adesso l'app contiene <b>dati di prova</b>: alcuni membri veri, cinque verbali, tre lettere e undici oggetti. Quando siamo pronti li sostituiamo con l'archivio vero.</div>
           <button class="bt dan" data-reset>Svuota tutto e riparti da zero</button>
-          <button class="bt" data-ricarica>Ricarica i dati di prova</button>
+          <button class="bt" data-ricarica>Ricarica l'archivio della chiesa</button>
         </div></div>
     </div>
   </div></div>`);
@@ -6802,7 +6802,7 @@ VISTE.impostazioni=async ()=>{
     ()=>{ const s=semi(); DB={...s,membri:[],incarichi:[],verbali:[],lettere:[],inventario:[],rapporti:[],
         sabati:[],ospitiNoti:[]};
       salva(); vai("dashboard"); disegna(); });
-  $("[data-ricarica]").onclick=()=>conferma("Rimetto i dati di prova al posto di quelli che ci sono adesso. Sicuro?",
+  $("[data-ricarica]").onclick=()=>conferma("Rimetto l'archivio della chiesa (48 membri, incarichi 2026, i nove verbali e l'inventario) al posto di quello che c'è adesso. Quel che hai aggiunto tu va perso: fai prima un backup. Sicuro?",
     ()=>{ DB=semi(); salva(); vai("dashboard"); disegna(); });
 };
 
