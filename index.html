@@ -479,21 +479,33 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 
 #stampa{display:none}
 .rh{display:none}
+/* Fuori da @media print: certe versioni di Safari non guardano le regole @page
+   scritte dentro un blocco @media, e allora rimettono i margini di carta suoi —
+   con dentro indirizzo del sito, data e ora. */
+@page{size:A4;margin:0}
 @media print{
   /* margine a zero: cosi' il browser non ha piu' spazio per scriverci data, ora e percorso del file.
-     Lo spazio bianco lo rimette la tabella .pgw, che ripete la testata su ogni pagina. */
+     Lo spazio bianco lo rimette la tabella .pgw, che ripete testata e piede su ogni pagina.
+     html e body tornano ad altezza libera: con l'altezza fissa dell'app iOS stampa
+     la pagina rimpicciolita e con i suoi margini. */
   @page{size:A4;margin:0}
-  body{background:#fff;font-size:12.3pt}
-  #app{display:none!important}
+  html,body{height:auto!important;min-height:0!important;margin:0!important;padding:0!important;
+    background:#fff;font-size:12.3pt;overflow:visible!important}
+  body>*:not(#stampa){display:none!important}
   #stampa{display:block!important}
-  .pgw{width:100%;border-collapse:collapse;table-layout:fixed}
+  .pgw{width:100%;border-collapse:collapse;table-layout:fixed;height:99vh}
   .pgw>tbody>tr>td{padding:0 7mm;vertical-align:top}
-  .pgw>thead>tr>td,.pgw>tfoot>tr>td{padding:0}
+  .pgw>thead>tr>td{padding:0}
+  .pgw>tfoot>tr>td{padding:0 7mm;vertical-align:bottom}
   .pgw .sp{height:7mm}
+  /* il piede del documento tolto dal corpo e messo qui dentro: il browser ripete
+     il tfoot in fondo a ogni pagina. */
+  .pgw .pf{padding:0 0 6mm}
+  .pgw .pf .pie{margin-top:0}
   /* la testata sta dentro il thead: il browser la ripete su ogni pagina, centrata.
      Deve contenere del testo, se no la cella si schiaccia e il margine sparisce. */
   .rh.ann{color:#A33B2A;font-weight:600}
-  .rh{display:block;height:8mm;padding-top:4mm;text-align:center;
+  .rh{display:block;height:7mm;padding-top:2mm;text-align:center;
     font-family:var(--mono);font-size:8.4pt;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A2}
   .foglio,.lettera{border:0;padding:0;font-size:10.8pt;line-height:1.4;background:#fff}
   .foglio .dc,.foglio .fm,.lettera .firma,.nodo{break-inside:avoid}
@@ -1615,12 +1627,21 @@ addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visibl
 addEventListener("pageshow", correggiZoom);
 function stampa(html, titolo){
   const annullato = html.includes('class="wmk"');
+  /* il piede del foglio (SDARM - Casentino, che documento e', generato il...) viene
+     tolto dalla fine del documento e messo nel tfoot della tabella: cosi' il browser
+     lo scrive in fondo a ogni pagina, non solo dopo l'ultima riga. */
+  const tmp=document.createElement("div"); tmp.innerHTML=html;
+  const pie=tmp.querySelector(".pie");
+  let piede="";
+  if(pie){ piede=pie.outerHTML; pie.remove(); html=tmp.innerHTML; }
   $("#stampa").innerHTML =
     `<table class="pgw">
        <thead><tr><td><div class="rh${annullato?" ann":""}">${annullato
          ? "Segreteria Casentino · verbale annullato" : "Segreteria Casentino"}</div></td></tr></thead>
        <tbody><tr><td>${html}</td></tr></tbody>
-       <tfoot><tr><td><div class="sp">&nbsp;</div></td></tr></tfoot></table>`;
+       <tfoot><tr><td>${piede
+         ? `<div class="foglio pf">${piede}</div>`
+         : '<div class="sp">&nbsp;</div>'}</td></tr></tfoot></table>`;
   const titoloPrima = document.title;
   if(titolo) document.title = titolo;
   let fatto=false;
