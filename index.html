@@ -915,148 +915,243 @@ function semi(){
     ...extra});
   const ev=(tipo,data,extra={})=>({id:uid(),tipo,data,officiante:"",luogo:"",chiesa:"",note:"",letteraId:null,allegati:[],...extra});
 
-  const m=[
-    M("Tudosa","Bogdan","M","1986-04-12","rumena","329 153 7906",{storico:[ev("battesimo","2004-06-12",{officiante:"P. Ionescu",luogo:"Bacău, Romania"})]}),
-    M("Tudosa","Mihaela","F","1987-02-28","rumena","328 650 3107",{storico:[ev("battesimo","2006-08-05")]}),
-    M("Tudosa","Flavia","F","2005-12-01","rumena","345 003 9447",{storico:[ev("battesimo","2021-05-15")]}),
-    M("Birla","Edoardo","M","2002-02-06","rumena","392 558 0703",{storico:[ev("battesimo","2018-07-14",{officiante:"V. Muresan",luogo:"Capolona"})]}),
-    M("Birla","Alex","M","2006-07-07","rumena","351 585 5352",{storico:[ev("battesimo","2022-06-11")]}),
-    M("Birla","Ovidiu","M","1976-07-04","rumena","334 866 1519",{storico:[ev("battesimo","1993-06-13",{officiante:"Victor Muresan",luogo:"Matca, Romania"})]}),
-    M("Birla","Elena","F","1980-03-15","rumena","389 008 2112",{storico:[ev("battesimo","1998-08-22")]}),
-    M("Paval","Ionel","M","1966-03-22","rumena","347 378 6729",{storico:[ev("battesimo","1990-09-01")]}),
-    M("Muñoz Garcia","Maryuri","F","1971-04-20","ecuadoriana","333 321 0832",{storico:[ev("battesimo","1995-04-08")]}),
-    M("Motta","Emilson","M","1956-06-30","brasiliana","389 023 1137",{pastore:false,storico:[ev("battesimo","1978-02-11")]}),
-    M("Ilyes","Levente","M","1985-09-14","rumena","334 614 7542",{storico:[ev("battesimo","2003-07-19")]}),
-    M("Ilyes","Lia","F","1987-06-09","rumena","334 960 5681",{storico:[ev("battesimo","2005-05-21")]}),
-    M("Vittorassi","Franck","M","1993-01-19","brasiliana","391 752 3375",{pastore:true,storico:[ev("battesimo","2010-03-06")]}),
-    M("Muntianasu","Titu","M","1954-11-02","rumena","388 841 6299",{storico:[ev("battesimo","1976-05-15")]}),
-    M("Muntianasu","Marcela","F","1955-08-17","rumena","328 871 6346",{storico:[ev("battesimo","1977-06-04")]}),
-    M("Ferreira","Weslania","F","1994-05-08","brasiliana","391 796 1567",{storico:[ev("battesimo","2012-09-22")]}),
-    M("Drouet Peralta","Eduardo","M","1960-04-10","ecuadoriana","338 780 9225",{storico:[ev("battesimo","1984-11-03")]}),
-    M("Solorzano Muñoz","Arianna","F","2005-03-30","ecuadoriana","334 856 4308",{storico:[ev("battesimo","2021-07-10")]}),
-    M("Frasinescu","Daniel Andrei","M","2004-10-05","rumena","348 758 1608",{storico:[ev("battesimo","2020-08-15")]}),
-    M("Niculici","Estera","F","1974-09-25","rumena","329 136 0063",{storico:[ev("battesimo","1996-06-01")]}),
-    M("Rodriguez","Maria Elena","F","1982-11-11","ecuadoriana","342 502 7644",{storico:[ev("battesimo","2001-10-13")]}),
-    /* una storia lunga, per far vedere lo storico: entra, esce, torna */
-    M("Lutai","Maria","F","1979-05-02","rumena","",{storico:[
-      ev("battesimo","1998-05-16",{luogo:"Arad, Romania"}),
-      ev("trasferimento-in","2026-01-24",{chiesa:"Chiesa di Poppi",note:"Confluita nella Chiesa del Casentino"}),
-      ev("trasferimento-out","2026-02-02",{chiesa:"Chiesa di Arad, Romania"})]}),
+  /* I 48 membri della lista ufficiale 2026. Anagrafica (nascita, telefono, battesimo)
+     da compilare: nella lista del Campo ci sono solo i nomi. */
+  const membri = [
+    ["Abreu Motta","Deborah","F"], ["Abreu Motta","Isabel","F"], ["Alban","Daniel","M"],
+    ["Birla","Alex","M"], ["Birla","Edoardo","M"], ["Birla","Elena","F"], ["Birla","Ovidiu","M"],
+    ["Caraman","Lidia","F"], ["Chagas","Beatriz","F"],
+    ["Corduneanu","Aneta","F"], ["Corduneanu","Iosif","M"],
+    ["Drouet Fajardo","Febe del Carmen","F"], ["Drouet Peralta","Eduardo","M"],
+    ["Fajardo Rodriguez","Sandra del Carmen","F"], ["Ferreira","Weslania","F"],
+    ["Frasinescu","Daniel Andrei","M"], ["Frasinescu","Silvia","F"], ["Frasinescu","Vasile","M"],
+    ["Garcia Pinargote","Nelly","F"], ["Ilies","Levente","M"], ["Ilies","Lia","F"],
+    ["Motta","Emilson","M"], ["Muñoz Garcia","Maryuri","F"],
+    ["Muntianasu","Marcela","F"], ["Muntianasu","Titu","M"],
+    ["Negrut","Aurora","F"], ["Niculici","Estera","F"],
+    ["Paval","Ionel","M"], ["Paval","Livia","F"],
+    ["Pohrib","Costel","M"], ["Pohrib Paval","Romelia Denisa","F"],
+    ["Rodriguez Gonzavai","Maria","F"], ["Rodriguez","Maria Elena","F"],
+    ["Schiopu","Ionel","M"], ["Schiopu","Lavinia","F"],
+    ["Solorzano Muñoz","Arianna","F"], ["Solorzano Muñoz","Genesis","F"], ["Solorzano Santana","Marcos","M"],
+    ["Stojkov","Elisabeta","F"], ["Tarabossi","Halessandra","F"],
+    ["Tudosa","Bogdan","M"], ["Tudosa","Flavia","F"], ["Tudosa","Mihaela","F"],
+    ["Verdes","Elisabeta","F"], ["Verdes","Neculai","M"],
+    ["Vittorassi","Franck","M"], ["Vulcan","Claudia","F"], ["Vulcan","Maria","F"],
   ];
+  const m = membri.map(([co,no,se])=>M(co,no,se,"","","",
+    se==="M"&&co==="Vittorassi" ? {pastore:true} : {}));
+  /* uscita dall'archivio: trasferita ad Arad il 02/02/2026 */
+  m.push(M("Lutai","Maria","F","","","",{storico:[
+    ev("trasferimento-in","2026-01-24",{chiesa:"Chiesa di Poppi",note:"Confluita nella Chiesa del Casentino"}),
+    ev("trasferimento-out","2026-02-02",{chiesa:"Chiesa di Arad, Romania"})]}));
+
   const id=(co,no)=>m.find(x=>x.cognome===co&&x.nome===no).id;
   const set=(co,no,campi)=>Object.assign(m.find(x=>x.cognome===co&&x.nome===no),campi);
-  /* famiglie */
-  set("Birla","Ovidiu",{coniugeId:id("Birla","Elena"),statoCivile:"Sposato/a"});
-  set("Birla","Elena",{coniugeId:id("Birla","Ovidiu"),statoCivile:"Sposato/a"});
-  set("Birla","Edoardo",{padreId:id("Birla","Ovidiu"),madreId:id("Birla","Elena")});
-  set("Birla","Alex",{padreId:id("Birla","Ovidiu"),madreId:id("Birla","Elena")});
-  set("Tudosa","Bogdan",{coniugeId:id("Tudosa","Mihaela"),statoCivile:"Sposato/a"});
-  set("Tudosa","Mihaela",{coniugeId:id("Tudosa","Bogdan"),statoCivile:"Sposato/a"});
-  set("Tudosa","Flavia",{padreId:id("Tudosa","Bogdan"),madreId:id("Tudosa","Mihaela")});
-  set("Muntianasu","Titu",{coniugeId:id("Muntianasu","Marcela"),statoCivile:"Sposato/a"});
-  set("Muntianasu","Marcela",{coniugeId:id("Muntianasu","Titu"),statoCivile:"Sposato/a"});
-  set("Ilyes","Levente",{coniugeId:id("Ilyes","Lia"),statoCivile:"Sposato/a"});
-  set("Ilyes","Lia",{coniugeId:id("Ilyes","Levente"),statoCivile:"Sposato/a"});
+  /* famiglie: solo i legami sicuri (coniugi e figli con il doppio cognome dei genitori).
+     Gli altri legami vanno aggiunti a mano dalla scheda del membro. */
+  const sposi=(coA,noA,coB,noB)=>{ set(coA,noA,{coniugeId:id(coB,noB),statoCivile:"Sposato/a"});
+                                   set(coB,noB,{coniugeId:id(coA,noA),statoCivile:"Sposato/a"}); };
+  const figlio=(co,no,pco,pno,mco,mno)=>set(co,no,{padreId:id(pco,pno),madreId:id(mco,mno)});
+  sposi("Birla","Ovidiu","Birla","Elena");
+  figlio("Birla","Edoardo","Birla","Ovidiu","Birla","Elena");
+  figlio("Birla","Alex","Birla","Ovidiu","Birla","Elena");
+  sposi("Tudosa","Bogdan","Tudosa","Mihaela");
+  figlio("Tudosa","Flavia","Tudosa","Bogdan","Tudosa","Mihaela");
+  sposi("Muntianasu","Titu","Muntianasu","Marcela");
+  sposi("Ilies","Levente","Ilies","Lia");
+  sposi("Corduneanu","Iosif","Corduneanu","Aneta");
+  sposi("Schiopu","Ionel","Schiopu","Lavinia");
+  sposi("Verdes","Neculai","Verdes","Elisabeta");
+  sposi("Paval","Ionel","Paval","Livia");
+  sposi("Solorzano Santana","Marcos","Muñoz Garcia","Maryuri");
+  figlio("Solorzano Muñoz","Arianna","Solorzano Santana","Marcos","Muñoz Garcia","Maryuri");
+  figlio("Solorzano Muñoz","Genesis","Solorzano Santana","Marcos","Muñoz Garcia","Maryuri");
+  sposi("Drouet Peralta","Eduardo","Fajardo Rodriguez","Sandra del Carmen");
+  figlio("Drouet Fajardo","Febe del Carmen","Drouet Peralta","Eduardo","Fajardo Rodriguez","Sandra del Carmen");
+  sposi("Frasinescu","Vasile","Frasinescu","Silvia");
+  figlio("Frasinescu","Daniel Andrei","Frasinescu","Vasile","Frasinescu","Silvia");
 
   const ric=(carica,co,no)=>({id:uid(),anno:2026,carica,membroId:id(co,no),dal:"2026-01-24",al:null,
     origine:"Riorganizzazione del 24/01/2026"});
   const inc=[
     ric("Dirigente","Tudosa","Bogdan"), ric("Segretario","Birla","Edoardo"), ric("Tesoriere","Birla","Ovidiu"),
     ric("Membro di comitato","Paval","Ionel"), ric("Membro di comitato","Muñoz Garcia","Maryuri"),
-    ric("Membro di comitato","Motta","Emilson"), ric("Membro di comitato","Ilyes","Levente"),
-    ric("1° Diacono","Muntianasu","Titu"), ric("2° Diacono","Ilyes","Levente"),
+    ric("Membro di comitato","Motta","Emilson"), ric("Membro di comitato","Ilies","Levente"),
+    ric("1° Diacono","Muntianasu","Titu"), ric("2° Diacono","Ilies","Levente"),
     ric("3° Diacono","Drouet Peralta","Eduardo"),
     ric("1ª Diaconessa","Muntianasu","Marcela"), ric("2ª Diaconessa","Muñoz Garcia","Maryuri"),
     ric("3ª Diaconessa","Ferreira","Weslania"),
     ric("Scuola del Sabato","Paval","Ionel"),
     ric("Dip. Giovani","Frasinescu","Daniel Andrei"), ric("Dip. Giovani","Tudosa","Flavia"),
-    ric("Dip. Missionario","Motta","Emilson"), ric("Letteratura","Ferreira","Weslania"),
-    ric("Musica","Muntianasu","Marcela"),
+    ric("Dip. Giovani","Solorzano Muñoz","Arianna"), ric("Dip. Giovani","Birla","Alex"),
+    ric("Letteratura","Ferreira","Weslania"),
+    ric("Dip. Missionario","Motta","Emilson"),
+    ric("Bambini","Pohrib Paval","Romelia Denisa"),
+    ric("Musica","Muntianasu","Marcela"), ric("Musica","Verdes","Elisabeta"),
     ric("Dip. Media","Solorzano Muñoz","Arianna"), ric("Dip. Media","Birla","Alex"),
+    ric("Dip. Media","Birla","Edoardo"),
   ];
-  const com7=[["Tudosa","Bogdan"],["Birla","Edoardo"],["Birla","Ovidiu"],["Paval","Ionel"],
-              ["Muñoz Garcia","Maryuri"],["Motta","Emilson"],["Ilyes","Levente"]].map(([c,n])=>id(c,n));
-  const tuttiId = m.filter(x=>x.cognome!=="Lutai").map(x=>x.id);
+
+  const G=(...nomi)=>nomi.map(n=>id(...n));
+  const BOG=["Tudosa","Bogdan"], EDO=["Birla","Edoardo"], OVI=["Birla","Ovidiu"],
+        LEV=["Ilies","Levente"], EMI=["Motta","Emilson"], MAR=["Muñoz Garcia","Maryuri"],
+        NEL=["Paval","Ionel"], FRA=["Vittorassi","Franck"];
+  const uff={presiedeId:id(...FRA), dirigenteId:id(...BOG), segretarioId:id(...EDO)};
+  const firmato=(quando)=>({stato:"firmato",
+    firme:{dirigente:{membroId:id(...BOG),quando,firma:null},
+           segretario:{membroId:id(...EDO),quando,firma:null}}});
 
   const verbali=[
+    /* ---- COMITATI ---- */
     {id:uid(),tipo:"comitato",numero:1,straordinario:false,anno:2026,data:"2026-02-01",
-     iniziato:true,oraApertura:"19:09",oraChiusura:"22:13",
-     presiedeId:id("Vittorassi","Franck"),dirigenteId:id("Tudosa","Bogdan"),segretarioId:id("Birla","Edoardo"),
-     meditazione:"1 Corinzi 12:14",inno:"",preghieraApertura:"Levente Ilyes",preghieraChiusura:"Nelu Paval",
-     presenti:com7, ospiti:["Pst. Franck Vittorassi"],
-     odg:["Cariche mancanti: dip. media","Terzo diacono e terza diaconessa","Gruppo whatsapp","Tesoreria",
+     iniziato:true,oraApertura:"19:09",oraChiusura:"22:13",...uff,
+     meditazione:"1 Corinzi 12:14",inno:"",preghieraApertura:"Levente Ilies",preghieraChiusura:"Nelu Paval",
+     presenti:G(BOG,EDO,OVI,LEV,EMI,NEL,MAR), ospiti:["Pst. Franck Vittorassi"],
+     odg:["Cariche mancanti: dip. media","Diacono","Gruppo whatsapp","Tesoreria",
           "Scuola del Sabato","Momento di preghiera","Inaugurazione sala provvisoria","Annunci","Pulizie","Varie ed eventuali"],
      decisioni:["Si mette a capo del dipartimento media, parte social, la sr. Arianna Solorzano; al computer il fr. Alex Birla e alla parte audio il fr. Edoardo Birla, in collaborazione con i giovani della chiesa.",
-       "Si aggiungono un terzo diacono e una terza diaconessa: si propongono il fr. Eduardo Drouet e la sr. Weslania Ferreira.",
-       "Si crea un gruppo whatsapp di soli membri e un gruppo con tutti i frequentanti.",
-       "Si fissa il contributo mensile a 25 € a membro. Ogni sei mesi la lista dei paganti sarà presentata all'assemblea dei membri.",
+       "Si aggiungono un diacono e una diaconessa: si propongono il fr. Eduardo Drouet e la sr. Weslania Ferreira.",
+       "Si fa un gruppo whatsapp di soli membri e un gruppo con tutti i frequentanti.",
+       "Si fissa il contributo mensile a 25 € a membro. Ogni sei mesi la lista dei paganti sarà presentata all'assemblea dei membri; ogni tre mesi il tesoriere avvertirà i membri rimasti indietro con i pagamenti. Si farà solamente l'offerta della Scuola del Sabato e del culto. Si aprirà un conto corrente locale.",
        "Il momento di preghiera si terrà alle 9:00.",
+       "Si farà una piccola consacrazione al momento di preghiera il primo sabato in cui ci raduneremo nella sala provvisoria.",
        "Gli annunci si faranno dopo la Scuola del Sabato.",
+       "Si propongono le sorelle Estera Niculici e Weslania Ferreira per le pulizie, pagate 20 € a settimana.",
        "Sabato 07/02/2026 sarà convocata un'assemblea dei membri dopo il tramonto."],
-     cronologia:[{ora:"19:09",testo:"Apertura del comitato"},{ora:"19:22",testo:"Entra la sr. Muñoz Garcia Maryuri — presenti 7"},{ora:"22:13",testo:"Chiusura"}],
+     cronologia:[{ora:"19:09",testo:"Apertura del comitato — dirige il pastore Franck Vittorassi"},
+       {ora:"19:22",testo:"Entra la sr. Muñoz Garcia Maryuri — presenti 7"},{ora:"22:13",testo:"Chiusura"}],
      letturaPrecedente:null,votazioni:[],elezioni:[],presentiApertura:null,presentiUscita:null,
-     stato:"firmato",firme:{dirigente:{membroId:id("Tudosa","Bogdan"),quando:"2026-02-08",firma:null},
-                            segretario:{membroId:id("Birla","Edoardo"),quando:"2026-02-08",firma:null}},
-     modifiche:[]},
+     ...firmato("2026-02-08"),modifiche:[]},
+
     {id:uid(),tipo:"comitato",numero:2,straordinario:false,anno:2026,data:"2026-02-21",
-     iniziato:true,oraApertura:"18:34",oraChiusura:"22:01",
-     presiedeId:id("Vittorassi","Franck"),dirigenteId:id("Tudosa","Bogdan"),segretarioId:id("Birla","Edoardo"),
+     iniziato:true,oraApertura:"18:34",oraChiusura:"22:01",...uff,
      meditazione:"Salmi 126:3",inno:"",preghieraApertura:"Ovidiu Birla",preghieraChiusura:"Nelu Paval",
-     presenti:com7.filter(x=>x!==id("Ilyes","Levente")&&x!==id("Motta","Emilson")),
-     ospiti:["Pst. Franck Vittorassi"],
+     presenti:G(BOG,EDO,OVI,MAR,NEL), ospiti:["Pst. Franck Vittorassi"],
      odg:["Date dei comitati ordinari e delle assemblee dei membri","Santa Cena — definizione dell'orario",
           "Conferenze e alloggio","Spese","Varie ed eventuali"],
      decisioni:["Si convoca un'assemblea dei membri per il 25 aprile 2026. I prossimi comitati ordinari si terranno il 28 marzo e il 30 maggio 2026.",
        "La Santa Cena si celebrerà il 9 maggio 2026, per la disponibilità degli spazi. L'orario valido per tutto l'anno sarà messo a votazione dell'assemblea fra tre opzioni: mattina, pomeriggio, sera dopo il tramonto.",
        "I fratelli del comitato danno la propria disponibilità a ospitare alcuni fratelli; la stessa disponibilità sarà chiesta agli altri fratelli.",
-       "Si dà autonomia al tesoriere per le spese ordinarie di manutenzione; ogni altra spesa passa dal comitato.",
-       "Si ricorda che il locale, per quanto provvisorio, è luogo sacro e va mantenuta la riverenza. La lingua ufficiale della chiesa è l'italiano. Da marzo, ogni ultimo venerdì del mese si terrà l'incontro in famiglia."],
-     cronologia:[{ora:"18:34",testo:"Apertura del comitato"},{ora:"18:41",testo:"Lettura del verbale precedente, approvato all'unanimità"},{ora:"22:01",testo:"Chiusura"}],
+       "Si dà autonomia al tesoriere per le spese ordinarie di manutenzione; ogni altra spesa passa dal comitato. Si danno dalla cassa locale i soldi per le stufe al fr. Nelu Paval.",
+       "Si ricorda che il locale, per quanto provvisorio, è luogo sacro e va mantenuta la riverenza. La lingua ufficiale della chiesa è l'italiano e i programmi ufficiali si svolgeranno in questa lingua. Da marzo, ogni ultimo venerdì del mese si terrà l'incontro in famiglia."],
+     cronologia:[{ora:"18:34",testo:"Apertura del comitato — presiede il pastore Franck Vittorassi"},
+       {ora:"18:41",testo:"Lettura del verbale precedente, approvato all'unanimità"},{ora:"22:01",testo:"Chiusura"}],
      letturaPrecedente:{esito:"all'unanimità"},votazioni:[],elezioni:[],presentiApertura:null,presentiUscita:null,
      stato:"chiuso",firme:{dirigente:null,segretario:null},modifiche:[]},
+
     {id:uid(),tipo:"comitato",numero:1,straordinario:true,anno:2026,data:"2026-03-16",
-     iniziato:true,oraApertura:"19:36",oraChiusura:"21:35",
-     presiedeId:id("Vittorassi","Franck"),dirigenteId:id("Tudosa","Bogdan"),segretarioId:id("Birla","Edoardo"),
-     meditazione:"Salmi 105:1",inno:"",preghieraApertura:"Levente Ilyes",preghieraChiusura:"Maryuri Muñoz",
-     presenti:com7, ospiti:["Pst. Franck Vittorassi"],
+     iniziato:true,oraApertura:"19:36",oraChiusura:"21:35",...uff,
+     meditazione:"Salmi 105:1",inno:"",preghieraApertura:"Levente Ilies",preghieraChiusura:"Maryuri Muñoz",
+     presenti:G(BOG,EDO,OVI,LEV,EMI,MAR,NEL), ospiti:["Pst. Franck Vittorassi"],
      odg:["Acquisto di un impianto audio completo","Completamento cucina"],
-     decisioni:["Si decide di comprare mixer, casse e microfoni per un valore di 4.218 €: la spesa sarà sostenuta per metà dalla cassa locale e per metà dalla cassa del progetto.",
-       "Si decide di completare la cucina al prezzo di 3.000 €, con la stessa ripartizione."],
-     cronologia:[{ora:"19:36",testo:"Apertura del comitato"},{ora:"19:50",testo:"Entra il fr. Paval Ionel — presenti 7"},{ora:"21:35",testo:"Chiusura"}],
-     letturaPrecedente:{esito:"all'unanimità"},votazioni:[],elezioni:[],presentiApertura:null,presentiUscita:null,
-     stato:"firmato",firme:{dirigente:{membroId:id("Tudosa","Bogdan"),quando:"2026-03-21",firma:null},
-                            segretario:{membroId:id("Birla","Edoardo"),quando:"2026-03-21",firma:null}},modifiche:[]},
+     decisioni:["Si fissa l'assemblea dei membri per il 28/03/2026 per discutere le questioni del comitato e per l'11/04/2026 per presentare il rapporto, annullando la data decisa nel comitato precedente.",
+       "Si decide di comprare mixer, casse e microfoni per un valore di 4.218 €: la spesa sarà sostenuta per metà dalla cassa locale e per metà dalla cassa del progetto.",
+       "Il contributo mensile di 25 € dei fratelli resta alla cassa locale; il comitato deciderà con quanto aiutare il progetto. Vale fino a dicembre 2026.",
+       "Ogni membro è tenuto a pagare il contributo anche in caso di assenza fino a un mese. Se l'assenza si prolunga oltre tale periodo, i mesi completi successivi, anche non consecutivi, non sono soggetti a pagamento.",
+       "Si decide di completare la cucina al prezzo di 3.000 €, con la stessa ripartizione di spesa."],
+     cronologia:[{ora:"19:36",testo:"Apertura del comitato — presiede il pastore Franck Vittorassi"},
+       {ora:"19:50",testo:"Entra il fr. Paval Ionel — presenti 7"},{ora:"21:35",testo:"Chiusura"}],
+     letturaPrecedente:null,votazioni:[],elezioni:[],presentiApertura:null,presentiUscita:null,
+     ...firmato("2026-03-21"),modifiche:[]},
+
+    {id:uid(),tipo:"comitato",numero:3,straordinario:false,anno:2026,data:"2026-06-13",
+     iniziato:true,oraApertura:"21:05",oraChiusura:"21:56",...uff,
+     meditazione:"",inno:"",preghieraApertura:"Emilson Motta",preghieraChiusura:"Ovidiu Birla",
+     presenti:G(BOG,EDO,OVI,LEV,EMI,MAR,NEL), ospiti:["Pst. Franck Vittorassi"],
+     odg:["Cena del sabato","Schermi","Tavoli","Varie ed eventuali"],
+     decisioni:["Viene proposto di fare il rinfresco venerdì invece che sabato: la proposta è respinta a maggioranza. Si comprano le pizze per la cena del sabato sera; la spesa sarà sostenuta dalle offerte raccolte alla conferenza e anticipata dalla cassa locale. Se le offerte non bastassero, la differenza sarà messa dal Campo.",
+       "Si comprano due schermi per la sala grande al prezzo di 1.000 €: la spesa sarà sostenuta dalla cassa locale e successivamente rimborsata dal progetto.",
+       "Viene proposto di comprare dei tavoli per il cibo: la proposta è respinta a maggioranza."],
+     cronologia:[{ora:"21:05",testo:"Apertura del comitato — il fr. Franck Vittorassi assume la presidenza e guida il raduno"},
+       {ora:"21:56",testo:"Chiusura"}],
+     letturaPrecedente:null,votazioni:[],elezioni:[],presentiApertura:null,presentiUscita:null,
+     stato:"chiuso",firme:{dirigente:null,segretario:null},modifiche:[]},
+
+    {id:uid(),tipo:"comitato",numero:4,straordinario:false,anno:2026,data:"2026-07-05",
+     iniziato:true,oraApertura:"19:43",oraChiusura:"21:22",...uff,
+     meditazione:"",inno:"",preghieraApertura:"Ovidiu Birla",preghieraChiusura:"Maryuri Muñoz",
+     presenti:G(BOG,EDO,OVI,MAR,EMI), ospiti:["Pst. Franck Vittorassi"],
+     odg:["Valutazione e organizzazione dell'impianto audio","Installazione dell'impianto di climatizzazione",
+          "Ordine e pulizia dei locali interni e manutenzione delle aree esterne","Acquisti vari","Inventario","Varie ed eventuali"],
+     decisioni:["Per l'impianto audio si constata che bisogna aspettare le poltrone per poter fare una valutazione accurata dell'attrezzatura necessaria.",
+       "Si informa che la climatizzazione dovrà essere funzionante al più presto possibile.",
+       "Si vede la necessità di ordinare il garage, buttando i materiali non più utilizzabili, per non portare lo sporco al piano di sopra. Per i lavori di manutenzione esterni si farà a turni senza pagare nessuno; in futuro sarà comprata l'attrezzatura e messo personale responsabile pagato. Momentaneamente l'attrezzatura sarà prestata dal fr. Ovidiu Birla. Si mette un responsabile per la pulizia settimanale e due volte all'anno tutti i fratelli contribuiranno alle pulizie generali. Per il mese di luglio la sr. Weslania Ferreira e la sr. Maryuri Muñoz sono responsabili della pulizia e riporteranno un rapporto con le ore necessarie.",
+       "Si comprano due erogatori d'acqua, uno per sopra e uno per sotto, e si restituisce quello attuale che è in affitto. Si comprano tre porte: la chiesa locale sosterrà la spesa e a fine anno il progetto valuterà se rimborsare. Si compra un nuovo computer; il fr. Edoardo Birla venderà il suo a 650 €. Si valuta l'acquisto di una cella frigorifera per le conferenze e di sistemi di videosorveglianza.",
+       "Si decide di fare un inventario.",
+       "Per il programma di pomeriggio di agosto si verificherà sabato per sabato la presenza dei fratelli."],
+     cronologia:[{ora:"19:43",testo:"Apertura del comitato"},
+       {ora:"19:45",testo:"Lettura del verbale precedente, approvato a maggioranza"},
+       {ora:"19:47",testo:"Entra il fr. Motta Emilson — presenti 5"},{ora:"21:22",testo:"Chiusura"}],
+     letturaPrecedente:{esito:"a maggioranza"},votazioni:[],elezioni:[],presentiApertura:null,presentiUscita:null,
+     stato:"chiuso",firme:{dirigente:null,segretario:null},modifiche:[]},
+
+    /* ---- ASSEMBLEE DEI MEMBRI ----
+       i verbali su carta riportano solo quanti erano presenti, non i nomi: qui si tiene
+       il numero, l'elenco si spunta solo per le assemblee future. */
     {id:uid(),tipo:"raduno",numero:1,straordinario:false,anno:2026,data:"2026-02-07",
-     iniziato:true,oraApertura:"17:44",oraChiusura:"19:20",
-     presiedeId:id("Vittorassi","Franck"),dirigenteId:id("Tudosa","Bogdan"),segretarioId:id("Birla","Edoardo"),
+     iniziato:true,oraApertura:"17:44",oraChiusura:"19:20",...uff,
      meditazione:"",inno:"164 Viva speranza",preghieraApertura:"Maria Rodriguez",preghieraChiusura:"Flavia Tudosa",
-     presenti:tuttiId.slice(0,18), ospiti:["John Mukenge"],
+     presenti:[], ospiti:["John Mukenge"],
      odg:["Presentazione delle decisioni del comitato"],
-     decisioni:["Si accettano per maggioranza le decisioni del comitato: dip. media, terzo diacono e terza diaconessa, contributo fisso mensile di 25 €, incarico di pulizia del locale.",
-       "Si decide per maggioranza di inviare il rapporto dell'assemblea dei membri sul gruppo whatsapp.",
+     decisioni:["Si accettano a maggioranza le decisioni del comitato: dipartimento media (Arianna Solorzano ai social, Alex Birla ed Edoardo Birla alla parte tecnica, con la collaborazione dei giovani); aggiunta del fr. Eduardo Drouet e della sr. Weslania Ferreira come terzo diacono e terza diaconessa; contributo fisso mensile di 25 € a testa, destinato al mantenimento del locale e alla restituzione del debito al Campo Italiano; incarico della pulizia del locale alla sr. Estera Niculici, pagata 20 € a settimana.",
+       "Si decide a maggioranza di inviare il rapporto dell'assemblea dei membri sul gruppo whatsapp.",
+       "Si decide a maggioranza di comunicare anche sul gruppo con tutti i frequentanti il contributo mensile, per chi vuole contribuire volontariamente.",
        "Il programma del venerdì sera si farà fino a marzo alle 20:00."],
-     cronologia:[{ora:"17:44",testo:"Apertura — presenti 19"},{ora:"18:40",testo:"Esce la sr. Niculici Estera — presenti 18"},{ora:"19:20",testo:"Chiusura"}],
-     letturaPrecedente:null,votazioni:[],elezioni:[],presentiApertura:19,presentiUscita:18,
-     stato:"firmato",firme:{dirigente:{membroId:id("Tudosa","Bogdan"),quando:"2026-02-14",firma:null},
-                            segretario:{membroId:id("Birla","Edoardo"),quando:"2026-02-14",firma:null}},modifiche:[]},
+     cronologia:[{ora:"17:44",testo:"Apertura — dirige il pastore Franck Vittorassi. Non essendo presenti i due terzi, si propone di continuare con la maggioranza più uno: accettato all'unanimità"},
+       {ora:"18:40",testo:"Esce la sr. Niculici Estera — presenti 30"},{ora:"19:20",testo:"Chiusura"}],
+     letturaPrecedente:null,votazioni:[],elezioni:[],presentiApertura:31,presentiUscita:30,
+     ...firmato("2026-02-14"),modifiche:[]},
+
     {id:uid(),tipo:"raduno",numero:2,straordinario:false,anno:2026,data:"2026-03-28",
-     iniziato:true,oraApertura:"18:50",oraChiusura:"20:25",
-     presiedeId:id("Tudosa","Bogdan"),dirigenteId:id("Tudosa","Bogdan"),segretarioId:id("Birla","Edoardo"),
-     meditazione:"Giovanni 13:34-35",inno:"Viva speranza",preghieraApertura:"Lia Ilyes",preghieraChiusura:"Franck Vittorassi",
-     presenti:tuttiId.slice(0,16), ospiti:[],
-     odg:["Definizione dell'orario della Santa Cena","Invio del rapporto sul gruppo whatsapp"],
-     decisioni:["Invio del rapporto dell'assemblea dei membri sul gruppo whatsapp."],
-     decisioniVoto:[{modo:"alzata",opzioni:[{testo:"Favorevoli",voti:13},{testo:"Contrari",voti:1}],
-       bianchi:0,nulli:0,astenuti:2,presenti:16,giri:[]}],
-     cronologia:[{ora:"18:50",testo:"Apertura — presenti 17"},{ora:"19:15",testo:"Esce la sr. Solorzano Muñoz Arianna — presenti 16"},{ora:"20:25",testo:"Chiusura"}],
+     iniziato:true,oraApertura:"18:50",oraChiusura:"20:25",...uff,
+     meditazione:"Giovanni 13:34-35",inno:"Viva speranza",preghieraApertura:"Lia Ilies",preghieraChiusura:"Franck Vittorassi",
+     presenti:[], ospiti:[],
+     odg:["Definizione dell'orario della Santa Cena"],
+     decisioni:["Non avendo raggiunto la maggioranza più uno, la decisione sull'orario della Santa Cena è rimandata al comitato."],
+     cronologia:[{ora:"18:50",testo:"Apertura — presenti 31"},
+       {ora:"19:15",testo:"Esce la sr. Solorzano Muñoz Arianna — presenti 30"},
+       {ora:"20:18",testo:"Escono il fr. Paval Ionel, la sr. Paval Livia, la sr. Pohrib Paval Romelia Denisa, il fr. Frasinescu Daniel Andrei e la sr. Vulcan Claudia — presenti 25"},
+       {ora:"20:25",testo:"Chiusura"}],
      letturaPrecedente:{esito:"a maggioranza"},
-     votazioni:[{id:uid(),oggetto:"Orario della Santa Cena",modo:"segreto",
+     votazioni:[{id:uid(),oggetto:"Orario della Santa Cena — primo giro",modo:"segreto",
        opzioni:[{testo:"Mattina",voti:14},{testo:"Sera dopo il tramonto",voti:9},{testo:"Pomeriggio",voti:5}],
-       bianchi:2,nulli:0,astenuti:0,giri:[],presenti:16,esito:"rimandata al comitato"},
-      {id:uid(),oggetto:"Invio del rapporto dell'assemblea dei membri sul gruppo whatsapp",modo:"alzata",
-       opzioni:[{testo:"Favorevoli",voti:13},{testo:"Contrari",voti:1}],
-       bianchi:0,nulli:0,astenuti:2,giri:[],presenti:16,esito:"approvata",decisioneFatta:true}],
-     elezioni:[],presentiApertura:17,presentiUscita:16,
+       bianchi:2,nulli:0,astenuti:0,giri:[],presenti:30,esito:"ballottaggio"},
+      {id:uid(),oggetto:"Orario della Santa Cena — ballottaggio",modo:"segreto",
+       opzioni:[{testo:"Mattina",voti:15},{testo:"Sera dopo il tramonto",voti:14}],
+       bianchi:1,nulli:0,astenuti:0,giri:[],presenti:30,esito:"rimandata al comitato"}],
+     elezioni:[],presentiApertura:31,presentiUscita:25,
+     stato:"chiuso",firme:{dirigente:null,segretario:null},modifiche:[]},
+
+    {id:uid(),tipo:"raduno",numero:3,straordinario:false,anno:2026,data:"2026-04-25",
+     iniziato:true,oraApertura:"20:20",oraChiusura:"21:17",...uff,
+     meditazione:"",inno:"",preghieraApertura:"Levente Ilies",preghieraChiusura:"Maria Rodriguez",
+     presenti:[], ospiti:[],
+     odg:["Decisione per la Santa Cena","Presentazione del rapporto"],
+     decisioni:["Si presenta la proposta del comitato di celebrare la Santa Cena nei mesi invernali dopo il tramonto e nei mesi estivi al pranzo: la proposta è accettata all'unanimità.",
+       "Viene presentato il rapporto della tesoreria e approvato all'unanimità.",
+       "Nei mesi estivi, essendo il tramonto tardi, non si farà il programma del venerdì sera: accettato all'unanimità.",
+       "Si decide di aiutare economicamente la famiglia Drouet con una colletta sabato 02/05/2026; fino ad allora si useranno i soldi della cassa locale per una spesa di aiuto.",
+       "Il programma di pomeriggio si farà a un'ora fissa, le 18:00: accettato a maggioranza."],
+     cronologia:[{ora:"20:20",testo:"Apertura — presenti 26"},
+       {ora:"20:25",testo:"Lettura del verbale precedente, approvato a maggioranza con 20 voti su 26"},
+       {ora:"21:17",testo:"Chiusura"}],
+     letturaPrecedente:{esito:"a maggioranza"},votazioni:[],elezioni:[],presentiApertura:26,presentiUscita:26,
+     stato:"chiuso",firme:{dirigente:null,segretario:null},modifiche:[]},
+
+    {id:uid(),tipo:"raduno",numero:4,straordinario:false,anno:2026,data:"2026-06-06",
+     iniziato:true,oraApertura:"21:00",oraChiusura:"22:57",...uff,
+     meditazione:"",inno:"",preghieraApertura:"Titu Muntianasu",preghieraChiusura:"Franck Vittorassi",
+     presenti:[], ospiti:[],
+     odg:["Conferenza del Campo","Programma in natura","Cassa Dorca","Orario del programma pomeridiano","Maestre dei bambini"],
+     decisioni:["A maggioranza si decide: di fare il rinfresco per l'inaugurazione della sala grande sabato, nella reception; di fare la cena del sabato in comune; di fare il pranzo della domenica in comune.",
+       "Il programma di pomeriggio si farà in modo misto: alle 14:00 dopo il pranzo comune, alle 18:00 prima del tramonto, e uno in natura.",
+       "Si decide di dare aiuto alla famiglia Drouet chiedendo la collaborazione del Campo.",
+       "Si appuntano la sr. Weslania Ferreira e la sr. Aneta Corduneanu come maestre dei bambini."],
+     cronologia:[{ora:"21:00",testo:"Apertura — presenti 35. Viene letto il rapporto dell'assemblea passata"},
+       {ora:"22:40",testo:"Escono il fr. Frasinescu Daniel Andrei, la sr. Vulcan Claudia e il fr. Birla Alex — presenti 32"},
+       {ora:"22:57",testo:"Chiusura"}],
+     letturaPrecedente:{esito:"a maggioranza"},votazioni:[],elezioni:[],presentiApertura:35,presentiUscita:32,
      stato:"chiuso",firme:{dirigente:null,segretario:null},modifiche:[]},
   ];
 
@@ -1078,29 +1173,83 @@ function semi(){
      destinatario:"Către Comitetul Bisericii din Arad\nRomânia",oggetto:oggettoTrasferimento("ro"),
      corpo:testoTrasferimento("ro","F","Lutai Maria","Biserica din Casentino"),
      chiusa:chiusaLettera("ro"),firmatarioId:id("Birla","Edoardo"),membroId:id("Lutai","Maria"),allegati:[]},
-    {id:uid(),numero:3,anno:2026,data:"2026-05-18",tipo:"Circolare",lingua:"it",
-     destinatario:"Ai fratelli e alle sorelle\ndella Chiesa del Casentino",
-     oggetto:"Conferenza del Campo Italiano — 20 e 21 giugno 2026",
-     corpo:"Cari fratelli e care sorelle,\n\ncon gioia vi comunichiamo che la conferenza del Campo Italiano si terrà quest'anno presso la nostra chiesa, nei giorni di sabato 20 e domenica 21 giugno. In quell'occasione sarà inaugurata la sala grande.\n\nChi desidera ospitare fratelli provenienti da altre chiese è pregato di darne comunicazione al Comitato entro il 31 maggio, indicando quante persone può accogliere.",
-     chiusa:"Fraterni saluti nel Signore,\nper il Comitato della Chiesa del Casentino",
-     firmatarioId:id("Birla","Edoardo"),membroId:null,allegati:[]},
   ];
 
-  const O=(nome,categoria,ubicazione,quantita,anno,valore)=>({id:uid(),nome,categoria,ubicazione,quantita,anno,valore,foto:null,note:""});
+  /* Inventario vero, dalla lista del 04/09/2026. I valori sono per pezzo; dove manca
+     il prezzo (oggetti in prestito o senza stima) resta zero. Ubicazione da compilare. */
+  const O=(nome,categoria,ubicazione,quantita,anno,valore,proprieta,prestatore)=>({id:uid(),nome,categoria,
+    ubicazione,quantita,anno,valore,proprieta:proprieta||"chiesa",prestatore:prestatore||"",foto:null,note:""});
   const inventario=[
-    O("Mixer audio 12 canali","Impianto audio","Sala grande",1,2026,1480),
-    O("Casse acustiche","Impianto audio","Sala grande",2,2026,2100),
-    O("Microfoni senza filo","Impianto audio","Sala grande",4,2026,638),
-    O("Schermo 75 pollici","Impianto video","Sala grande",2,2026,1000),
-    O("Cavetteria video","Impianto video","Sala grande",1,2026,120),
-    O("Pianoforte digitale","Musica","Sala grande",1,2025,900),
-    O("Sedie impilabili","Arredo","Sala grande",60,2026,1800),
-    O("Tavoli pieghevoli","Arredo","Cucina",6,2026,480),
-    O("Cucina componibile","Arredo","Cucina",1,2026,3000),
-    O("Stufa a pellet","Riscaldamento","Reception",1,2026,640),
-    O("Innari","Letteratura","Reception",80,2024,560),
+    O("Pali dorati con cordone in velluto rosso","Arredo","",8,null,20),
+    O("Dispenser acqua Culligan","Cucina","",1,null,0,"prestito","Culligan — a noleggio"),
+    O("Robot aspirapolvere Ecovacs","Pulizia","",1,null,300),
+    O("Casse da incasso","Impianto audio","",4,null,25),
+    O("Orologio da parete","Arredo","",2,null,10),
+    O("Sedie bianche","Arredo","",4,null,0,"prestito","Nelu Paval"),
+    O("Set con poltrone, divano e tavolo","Arredo","",1,null,0,"prestito","Ovidiu Birla"),
+    O("Utensili bagno uomini","Arredo","",1,null,150),
+    O("Tavolo bianco","Arredo","",1,null,150),
+    O("Lavagna magnetica","Arredo","",1,null,50),
+    O("Arredo bagno donne","Arredo","",3,null,100),
+    O("Fasciatoio","Arredo","",1,null,0,"prestito","da verificare: prestito o donazione"),
+    O("Aspirapolvere Dyson Ball","Pulizia","",2,null,50),
+    O("Sedie nere","Arredo","",192,null,25),
+    O("Sedie grigie","Arredo","",4,null,50),
+    O("Sedia arancione","Arredo","",1,null,0,"prestito","Nelu Paval"),
+    O("Amplificatore Pyle PDA77BU","Impianto audio","",1,null,100),
+    O("Mixer Yamaha DM3","Impianto audio","",1,null,1500),
+    O("Cavi XLR colorati","Impianto audio","",4,null,50),
+    O("Microfono DJI Mic 3","Impianto audio","",1,null,0,"prestito","Nelu Paval"),
+    O("Set tastiera e mouse wireless","Informatica","",1,null,30),
+    O("Monitor LG","Informatica","",1,null,0,"prestito","Nelu Paval"),
+    O("Monitor Samsung","Informatica","",1,null,0,"prestito","da verificare"),
+    O("Pinze per monitor","Informatica","",2,null,25),
+    O("Set 16 batterie AA ricaricabili Imuto","Impianto audio","",1,null,50),
+    O("Splitter HDMI","Impianto video","",1,null,30),
+    O("Computer Asus Pro","Informatica","",1,null,0,"prestito","da verificare"),
+    O("Cavo VGA","Impianto video","",1,null,0),
+    O("Cavo HDMI 50 m","Impianto video","",1,null,80),
+    O("Cavi HDMI","Impianto video","",4,null,10),
+    O("Microfoni cablati Shure","Impianto audio","",2,null,50),
+    O("TV Philips","Impianto video","",2,null,450),
+    O("TV HiSense","Impianto video","",1,null,1400),
+    O("Pianoforte Weisman","Musica","",1,null,0,"prestito","da verificare"),
+    O("Cassa portatile con microfono Ibiza","Impianto audio","",1,null,200),
+    O("Pulpito grigio","Arredo","",1,null,0),
+    O("Microfono omnidirezionale","Impianto audio","",1,null,30),
+    O("Supporti per microfono","Impianto audio","",5,null,20),
+    O("Sedie per pianoforte","Musica","",2,null,90),
+    O("Casse grandi Proel amplificate","Impianto audio","",4,null,200),
+    O("Leggii","Musica","",10,null,20),
+    O("Trombone","Musica","",1,null,200),
+    O("Microfoni Sennheiser dual","Impianto audio","",2,null,600),
+    O("Casse piccole amplificate","Impianto audio","",4,null,100),
+    O("Mixer analogico Alto ZMX244","Impianto audio","",1,null,150),
+    O("Prolunga XLR 30 m","Impianto audio","",1,null,150),
+    O("Cavetteria audio","Impianto audio","",1,null,300),
+    O("Flauti traversi","Musica","",2,null,300),
+    O("Tuba","Musica","",1,null,1500),
+    O("Eufoni","Musica","",3,null,500),
+    O("Trombe","Musica","",2,null,600),
+    O("Amplificatore Bose FreeSpace 190-HZ","Impianto audio","",1,null,400),
+    O("Computer portatile HP","Informatica","",1,null,400),
+    O("Sedie blu","Arredo","",44,null,25),
+    O("Piano elettronico Casio","Musica","",1,null,0,"prestito","Ovidiu Birla"),
+    O("Tavoli grandi in legno","Arredo","",6,null,150),
+    O("Sedie in legno","Arredo","",11,null,15),
+    O("Orologio digitale","Arredo","",1,null,20),
+    O("Set da due casse a incasso Bose","Impianto audio","",2,null,300),
+    O("Stufe elettriche","Riscaldamento","",4,null,60),
+    O("Tavoli generici","Arredo","",4,null,50),
+    O("Dispenser in vetro","Cucina","",5,null,20),
+    O("Frigorifero Haier","Cucina","",1,null,500),
+    O("Frigorifero Samsung","Cucina","",1,null,150),
+    O("Lavastoviglie Whirlpool","Cucina","",2,null,300),
+    O("Lavatrice Comfee","Cucina","",1,null,200),
+    O("Forni Electrolux","Cucina","",2,null,200),
+    O("TV Samsung 56\"","Impianto video","",1,null,0,"prestito","Nelu Paval"),
+    O("TV Samsung 55\"","Impianto video","",1,null,400),
   ];
-
   const OSPITI_PROVA=[{id:uid(),nome:"Famiglia Rossi",nato:1985,note:""},
                       {id:uid(),nome:"Marco Gambini",nato:2014,note:""}];
   function sabatiProva(mm){
@@ -1151,9 +1300,8 @@ function semi(){
       sogliaAssenze:5, sogliaOspiti:50, sogliaAssemblee:3
     },
     membri:m, incarichi:inc, verbali, lettere, chiese, inventario,
-    sabati:sabatiProva(m), ospitiNoti:OSPITI_PROVA,
-    rapporti:[{id:uid(),anno:2026,trimestre:1,inviato:true,manuali:{infanti:1,b58:4,b913:1,g1417m:0,g1417n:0,
-      g1820m:1,g1820n:1,adulti:20,infermieri:2,nutrizionisti:1,ospiti:5,studi:0}}]
+    sabati:[], ospitiNoti:[],
+    rapporti:[]
   };
 }
 </script>
