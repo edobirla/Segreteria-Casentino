@@ -493,7 +493,9 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
     background:#fff;font-size:12.3pt;overflow:visible!important}
   body>*:not(#stampa){display:none!important}
   #stampa{display:block!important}
-  .pgw{width:100%;border-collapse:collapse;table-layout:fixed;height:99vh}
+  /* niente altezza fissa qui: 99vh su iPad faceva uscire una pagina bianca in piu'.
+     Il piede resta in fondo alle pagine piene; sull'ultima segue il testo. */
+  .pgw{width:100%;border-collapse:collapse;table-layout:fixed}
   .pgw>tbody>tr>td{padding:0 7mm;vertical-align:top}
   .pgw>thead>tr>td{padding:0}
   .pgw>tfoot>tr>td{padding:0 7mm;vertical-align:bottom}
@@ -505,7 +507,7 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
   /* la testata sta dentro il thead: il browser la ripete su ogni pagina, centrata.
      Deve contenere del testo, se no la cella si schiaccia e il margine sparisce. */
   .rh.ann{color:#A33B2A;font-weight:600}
-  .rh{display:block;height:7mm;padding-top:2mm;text-align:center;
+  .rh{display:block;height:13mm;padding-top:2mm;text-align:center;
     font-family:var(--mono);font-size:8.4pt;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A2}
   .foglio,.lettera{border:0;padding:0;font-size:10.8pt;line-height:1.4;background:#fff}
   .foglio .dc,.foglio .fm,.lettera .firma,.nodo{break-inside:avoid}
@@ -1799,7 +1801,7 @@ function puntiDiTaglio(corpo, utile){
   tagli.push(tot);
   return tagli;
 }
-async function pagineDelFoglio(html){
+async function pagineDelFoglio(html, scalaImposta){
   const {f,d} = await telaioPdf(html);
   try{
     const vista=d.getElementById("pdf-vista"), corpo=d.getElementById("pdf-corpo");
@@ -1810,7 +1812,9 @@ async function pagineDelFoglio(html){
     const utile=PDF_A-altRh-altPie-Math.round(6*3.78);
     const tagli=puntiDiTaglio(corpo, utile);
     const nPag=tagli.length-1;
-    const scala = nPag<=4 ? 2.5 : nPag<=10 ? 2 : 1.5;
+    /* 3,4 volte la misura a schermo sono circa 325 punti per pollice: piu' su non si
+       puo' andare, iOS non regge tele piu' alte di 4096 pixel. */
+    const scala = scalaImposta || (nPag<=4 ? 3.4 : nPag<=10 ? 2.4 : 1.8);
     const opz={backgroundColor:"#fff", scale:scala, logging:false, useCORS:false, imageTimeout:0};
     const cRh=await H2C(rh, opz);
     const cPie=pie?await H2C(pie, opz):null;
@@ -1827,7 +1831,7 @@ async function pagineDelFoglio(html){
       g.drawImage(cRh,0,0);
       g.drawImage(cCor,0,Math.round(altRh*scala));
       if(cPie) g.drawImage(cPie,0,pg.height-cPie.height);
-      pagine.push(await new Promise(ok=>pg.toBlob(ok,"image/jpeg",.92)));
+      pagine.push(await new Promise(ok=>pg.toBlob(ok,"image/jpeg",.96)));
     }
     return pagine;
   } finally { f.remove(); }
@@ -1859,7 +1863,11 @@ async function pdfDaPagine(imgs){
   return new Blob(parti,{type:"application/pdf"});
 }
 async function pdfDelFoglio(html){
-  const blobs=await pagineDelFoglio(html);
+  let blobs=await pagineDelFoglio(html);
+  /* se un apparecchio non regge una tela cosi' grande restituisce pagine vuote (poche
+     centinaia di byte): in quel caso si rifa' tutto piu' piccolo, meglio meno definito
+     che bianco. */
+  if(blobs.some(b=>!b || b.size<4000)) blobs=await pagineDelFoglio(html, 2);
   const imgs=[];
   for(const b of blobs){
     const bm=await createImageBitmap(b);
