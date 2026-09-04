@@ -941,6 +941,53 @@ function semi(){
   ];
   const m = membri.map(([co,no,se])=>M(co,no,se,"","","",
     se==="M"&&co==="Vittorassi" ? {pastore:true} : {}));
+  /* Anagrafica presa dalle schede personali dell'archivio di Capolona (2018-2022):
+     vale solo per i membri che stavano gia' li'. Per gli altri i campi restano vuoti,
+     da compilare dalla scheda. Dove la scheda riportava solo l'anno del battesimo,
+     la data resta vuota e l'anno e' scritto nella nota. */
+  const dati=(co,no,a,b)=>{ const x=m.find(z=>z.cognome===co&&z.nome===no); if(!x) return;
+    Object.assign(x,a||{});
+    if(b) x.storico=[ev("battesimo", b.data||"", {officiante:b.off||"", luogo:b.luogo||"", note:b.note||""})];
+  };
+  dati("Abreu Motta","Isabel",{nato:"1965-09-20",cittaNascita:"Rio de Janeiro (RJ), Brasile",
+    cittadinanza:"brasiliana",statoCivile:"Sposato/a"},{note:"agosto 1980"});
+  dati("Alban","Daniel",{nato:"1969-04-05",cittaNascita:"Bacău, Romania",cittadinanza:"rumena",
+    statoCivile:"Sposato/a",note:"Coniuge: Marianna Alban"},
+    {data:"2022-06-30",off:"Giordano Tinta",luogo:"Subbiano (AR), Italia"});
+  dati("Birla","Elena",{nato:"1977-06-12",cittaNascita:"Piatra Neamț, Romania",cittadinanza:"rumena",
+    statoCivile:"Sposato/a"},{data:"1999-06-27"});
+  dati("Birla","Ovidiu",{nato:"1976-07-04",cittaNascita:"Cimpuri (Vrancea), Romania",cittadinanza:"rumena",
+    titoloStudio:"Artigiano",professione:"Muratore",statoCivile:"Sposato/a"},
+    {data:"1993-06-13",off:"Victor Muresan",luogo:"Matca, Romania"});
+  dati("Chagas","Beatriz",{nato:"1963-03-15",cittaNascita:"Salto do Jacuí (RS), Brasile",
+    cittadinanza:"brasiliana, italiana",titoloStudio:"Economia e commercio",statoCivile:"Sposato/a"},
+    {data:"2017-07-22",off:"Abel Morales",luogo:"Poppi (AR), Italia"});
+  dati("Drouet Fajardo","Febe del Carmen",{nato:"1999-10-21",cittaNascita:"Arezzo, Italia",
+    cittadinanza:"italiana"},{note:"anno 2015"});
+  dati("Drouet Peralta","Eduardo",{cittaNascita:"Ecuador",cittadinanza:"ecuadoriana, italiana",
+    titoloStudio:"Superiore",professione:"Operaio",statoCivile:"Sposato/a"},{luogo:"Stia (AR), Italia"});
+  dati("Fajardo Rodriguez","Sandra del Carmen",{nato:"1978-07-15",cittaNascita:"Machala (El Oro), Ecuador",
+    cittadinanza:"ecuadoriana",titoloStudio:"Chimica biologa",professione:"Casalinga",statoCivile:"Sposato/a"},
+    {data:"1989-01-01",off:"Daniel Guzman"});
+  dati("Garcia Pinargote","Nelly",{nato:"1949-07-08",cittaNascita:"Honorato Vasquez (Manabí), Ecuador",
+    cittadinanza:"ecuadoriana"},{data:"2011-06-11"});
+  dati("Motta","Emilson",{nato:"1956-06-30",cittaNascita:"Rio de Janeiro, Brasile",cittadinanza:"brasiliana",
+    titoloStudio:"Diplomato",professione:"Ministro",statoCivile:"Sposato/a"},{note:"anno 1976"});
+  dati("Muñoz Garcia","Maryuri",{nato:"1971-08-27",cittaNascita:"Honorato Vasquez (Manabí), Ecuador",
+    cittadinanza:"ecuadoriana",titoloStudio:"Laurea",professione:"Infermiera",statoCivile:"Sposato/a"},
+    {note:"anno 2001"});
+  dati("Solorzano Muñoz","Genesis",{nato:"1994-07-09",cittaNascita:"Guayaquil, Ecuador",
+    cittadinanza:"ecuadoriana",titoloStudio:"Decorazione e stampa serigrafica"},
+    {data:"2012-07-01",off:"José Angel Senior",luogo:"Sauze d'Oulx (TO), Italia"});
+  dati("Solorzano Santana","Marcos",{nato:"1964-12-02",cittaNascita:"Chone (Manabí), Ecuador",
+    cittadinanza:"ecuadoriana",titoloStudio:"Meccanico",professione:"Operaio",statoCivile:"Sposato/a"},
+    {data:"2000-07-16",off:"P. Angel Senior",luogo:"Badia Prataglia (AR), Italia"});
+  dati("Tarabossi","Halessandra",{nato:"1987-03-06",cittaNascita:"Ji-Paraná (Rondônia), Brasile",
+    cittadinanza:"italiana",titoloStudio:"Superiore",statoCivile:"Sposato/a"},
+    {data:"2001-01-21",off:"Durval Bispo",luogo:"Ji-Paraná, Brasile"});
+  dati("Verdes","Elisabeta",{nato:"1966-01-23",cittaNascita:"Carei (Bihor), Romania",
+    cittadinanza:"rumena",statoCivile:"Sposato/a"},{data:"1981-08-07"});
+
   /* uscita dall'archivio: trasferita ad Arad il 02/02/2026 */
   m.push(M("Lutai","Maria","F","","","",{storico:[
     ev("trasferimento-in","2026-01-24",{chiesa:"Chiesa di Poppi",note:"Confluita nella Chiesa del Casentino"}),
@@ -970,6 +1017,7 @@ function semi(){
   sposi("Drouet Peralta","Eduardo","Fajardo Rodriguez","Sandra del Carmen");
   figlio("Drouet Fajardo","Febe del Carmen","Drouet Peralta","Eduardo","Fajardo Rodriguez","Sandra del Carmen");
   sposi("Frasinescu","Vasile","Frasinescu","Silvia");
+  sposi("Motta","Emilson","Abreu Motta","Isabel");
   figlio("Frasinescu","Daniel Andrei","Frasinescu","Vasile","Frasinescu","Silvia");
 
   const ric=(carica,co,no)=>({id:uid(),anno:2026,carica,membroId:id(co,no),dal:"2026-01-24",al:null,
