@@ -390,7 +390,9 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 .foglio table.inv .pre{display:block;color:#8A6A1F;font-size:.85em;font-family:var(--sans);font-weight:600;margin-top:1px}
 .foglio table.inv .pre::before{content:"PRESTITO — ";letter-spacing:.04em}
 /* inventario stampato: righe basse, una riga per oggetto, niente testi che vanno a capo */
-.foglio table.inv.sem td{padding:3px 6px 3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+/* niente overflow:hidden: quando il foglio viene disegnato per il PDF taglierebbe
+   le code delle lettere (p, g) e mezze righe dei totali. */
+.foglio table.inv.sem td{padding:3px 6px 4px 0;white-space:nowrap;vertical-align:middle}
 .foglio table.inv.sem td.ft{padding:2px 6px 2px 0}
 .foglio table.inv.sem td.ft+td,.foglio table.inv.sem td:nth-child(2){white-space:normal}
 .foglio table.inv.sem .ftimg{width:34px;height:34px}
@@ -399,7 +401,7 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 .foglio table.inv.sem tr.sub td{background:none}
 /* registro delle presenze: sabati in colonna, pallino pieno o vuoto */
 .foglio table.reg{font-size:.82em;table-layout:fixed}
-.foglio table.reg td,.foglio table.reg th{padding:2px 2px;white-space:nowrap;overflow:hidden}
+.foglio table.reg td,.foglio table.reg th{padding:2px 2px 3px;white-space:nowrap}
 .foglio table.reg th.n,.foglio table.reg td.n{text-align:center;font-family:var(--mono);font-size:.9em}
 .foglio table.reg th{font-size:.82em;letter-spacing:0}
 .foglio table.reg th.n b{display:block;font-weight:600}
@@ -1790,12 +1792,16 @@ function puntiDiTaglio(corpo, utile){
     if(c.matches && c.matches(PDF_INTERI)) segna(c);
     else if(c.children.length) scendi(c);
     else segna(c); } })(corpo);
+  const titoli=[...corpo.querySelectorAll(".catt,h6,.ls,.st2")]
+    .map(e=>e.getBoundingClientRect().top-base);
   const tot=Math.ceil(Math.max(corpo.scrollHeight, ...blocchi.map(b=>b[1]), 1))+2;
   const tagli=[0]; let giri=0;
   while(tagli[tagli.length-1]+utile < tot && giri++ < 300){
     const inizio=tagli[tagli.length-1], y=inizio+utile, minimo=inizio+utile*.25;
     let alto=y;
     for(const [t,b] of blocchi) if(t<y-1 && b>y+1 && t>minimo) alto=Math.min(alto,t);
+    /* un titolo di sezione non resta da solo in fondo alla pagina */
+    for(const t of titoli) if(t<alto && alto-t<120 && t>minimo) alto=t;
     tagli.push(Math.max(Math.round(alto), Math.round(minimo)));
   }
   tagli.push(tot);
@@ -1837,7 +1843,7 @@ async function pagineDelFoglio(html, scalaImposta){
   } finally { f.remove(); }
 }
 /* un PDF scritto a mano: una pagina A4 per immagine, JPEG infilato dentro cosi' com'e' */
-async function pdfDaPagine(imgs){
+async function pdfDaPagine(imgs, adatta){
   const enc=new TextEncoder(); const parti=[]; const off=[]; let lung=0;
   const put=x=>{ const b=typeof x==="string"?enc.encode(x):x; parti.push(b); lung+=b.length; };
   const ogg=(n,corpo)=>{ off[n]=lung; put(`${n} 0 obj\n`+corpo+"\nendobj\n"); };
@@ -1849,7 +1855,11 @@ async function pdfDaPagine(imgs){
     const dati=new Uint8Array(await imgs[i].blob.arrayBuffer());
     ogg(idP(i), `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PDF_PL} ${PDF_PA}] `+
       `/Resources << /XObject << /Im0 ${idI(i)} 0 R >> >> /Contents ${idC(i)} 0 R >>`);
-    const fl=`q ${PDF_PL} 0 0 ${PDF_PA} 0 0 cm /Im0 Do Q`;
+    let dw=PDF_PL, dh=PDF_PA, dx=0, dy=0;
+    if(adatta){ /* la foto di un foglio non ha le proporzioni esatte di un A4: si centra */
+      const k=Math.min(PDF_PL/imgs[i].w, PDF_PA/imgs[i].h);
+      dw=imgs[i].w*k; dh=imgs[i].h*k; dx=(PDF_PL-dw)/2; dy=(PDF_PA-dh)/2; }
+    const fl=`q ${dw.toFixed(2)} 0 0 ${dh.toFixed(2)} ${dx.toFixed(2)} ${dy.toFixed(2)} cm /Im0 Do Q`;
     ogg(idC(i), `<< /Length ${fl.length} >>\nstream\n${fl}\nendstream`);
     off[idI(i)]=lung;
     put(`${idI(i)} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imgs[i].w} /Height ${imgs[i].h}`+
@@ -2678,13 +2688,63 @@ function aggiungiAllegato(m,e,foto){
   };
   i.click();
 }
+/* ---------- scanner: fotografa le pagine, ne esce un PDF ----------
+   Il documento ricevuto quasi sempre e' un foglio di carta: si fotografa una pagina
+   alla volta, le pagine si guardano e si tolgono, e alla fine diventano un unico PDF
+   (non tante fotografie sparse). */
+function fotoDiUnaPagina(){
+  return new Promise(ok=>{
+    const i=document.createElement("input");
+    i.type="file"; i.accept="image/*"; i.capture="environment";
+    /* ponytail: se annulla la fotocamera il browser non avvisa nessuno e questa
+       promessa resta li' senza risposta. Non da' fastidio: la finestra resta aperta. */
+    i.onchange=async ()=>{ if(!i.files.length) return ok(null);
+      try{ ok(await riduciImmagine(i.files[0], 2000, .86)); }catch(err){ ok(null); } };
+    i.click();
+  });
+}
+function scansiona(m, e){
+  const pag=[];
+  const {el, chiudi} = modale({titolo:"Scansiona un documento", largo:true, corpo:
+    `<div class="avv n">Fotografa una pagina alla volta, dritto sul foglio. Le pagine restano qui sotto:
+      puoi toglierle o rifarle, e alla fine diventano un <b>unico PDF</b>.</div>
+     <div id="scpg" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px"></div>`,
+    azioni:[{testo:"Fotografa una pagina", fn:()=>{ aggiungi(); return false; }},
+            {testo:"Annulla", fn:()=>{}},
+            {testo:"Salva come PDF", cls:"pri", destra:true, fn:()=>{ salvaPdf(); return false; }}]});
+  const mostra=()=>{
+    $("#scpg",el).innerHTML = pag.length ? pag.map((d,i)=>
+      `<div class="pn"><div class="pn-h"><span class="lb">Pagina ${i+1}</span>
+         <button class="bt sm dan psh" data-sx="${i}">Togli</button></div>
+       <div class="pn-b" style="background:#fff"><img src="${d}" style="width:100%"></div></div>`).join("")
+      : '<div class="vuoto">Ancora nessuna pagina: tocca «Fotografa una pagina».</div>';
+    $$("[data-sx]",el).forEach(b=>b.onclick=()=>{ pag.splice(+b.dataset.sx,1); mostra(); });
+  };
+  const aggiungi=async ()=>{ const d=await fotoDiUnaPagina(); if(d){ pag.push(d); mostra(); } };
+  const salvaPdf=async ()=>{
+    if(!pag.length) return avvisa("Nessuna pagina","Fotografa almeno una pagina prima di salvare.");
+    const imgs=[];
+    for(const d of pag){
+      const bl=await (await fetch(d)).blob();
+      const bm=await createImageBitmap(bl);
+      imgs.push({blob:bl, w:bm.width, h:bm.height}); bm.close&&bm.close();
+    }
+    const pdf=await pdfDaPagine(imgs, true);
+    const dato=await new Promise(ok=>{ const r=new FileReader(); r.onload=()=>ok(r.result); r.readAsDataURL(pdf); });
+    const id=await mediaSalva(dato);
+    e.allegati=e.allegati||[];
+    e.allegati.push({id, nome:`scansione-${oggiISO()}.pdf`, tipo:"application/pdf"});
+    chiudi(); salva(); disegna();
+  };
+  mostra();
+}
 function vediAllegati(m,e){
   const {el}=modale({titolo:"Allegati",largo:true,corpo:
     (e.allegati||[]).map((a,i)=>`<div class="pn"><div class="pn-h"><span class="lb">${esc(a.nome)}</span>
         <button class="bt sm psh" data-ap="${i}">Apri</button><button class="bt sm dan" data-ax="${i}">Togli</button></div>
       ${a.tipo.startsWith("image/")?`<div class="pn-b"><img src="${img(a.id)}" style="max-height:340px;margin:0 auto"></div>`:""}</div>`).join("")
       || '<div class="vuoto">Nessun allegato.</div>',
-    azioni:[{testo:"Fotografa il foglio",fn:()=>{ aggiungiAllegato(m,e,true); }},
+    azioni:[{testo:"Scansiona (PDF)",fn:()=>{ scansiona(m,e); }},
             {testo:"Aggiungi un allegato",fn:()=>{ aggiungiAllegato(m,e); }},
             {testo:"Chiudi",cls:"pri",destra:true,fn:()=>{}}]});
   $$("[data-ap]",el).forEach(b=>b.onclick=()=>{
@@ -5657,7 +5717,7 @@ function modificaLettera(l, modello, origine, bozza){
      ${ric?"":campo("Chiusa","chiusa",c.chiusa,"area")}
      ${ric?`<div class="avv n">Del foglio che hai ricevuto puoi tenere qui la foto o la scansione.
        <div style="margin-top:9px;display:flex;gap:8px;flex-wrap:wrap">
-         <button class="bt" data-foto>Fotografa il foglio</button>
+         <button class="bt" data-foto>Scansiona il foglio (PDF)</button>
          <button class="bt" data-scan>Scegli una foto o un file</button></div></div>`:""}`,
     azioni:[{testo:"Annulla",fn:()=>{}},{testo:"Salva",cls:"pri",destra:true,fn:()=>{
       Object.assign(l,c); if(nuovo) DB.lettere.push(l); letSel=l.id; letAnno=l.anno; salva(); disegna(); }}]});
@@ -5666,7 +5726,7 @@ function modificaLettera(l, modello, origine, bozza){
     c.origine=e.target.value; el.remove(); modificaLettera(nuovo?null:l, null, null, c); });
   /* ponytail: se annulla dopo aver fotografato, l'immagine resta nell'archivio senza
      nessuno che la usi. Poca roba, si ripulisce da sola al prossimo svuota-tutto. */
-  $("[data-foto]",el)?.addEventListener("click", ()=>aggiungiAllegato(null,c,true));
+  $("[data-foto]",el)?.addEventListener("click", ()=>scansiona(null,c));
   $("[data-scan]",el)?.addEventListener("click", ()=>aggiungiAllegato(null,c));
 }
 </script>
