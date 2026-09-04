@@ -2550,19 +2550,26 @@ function movimentiAnno(anno){
   return {d,entrate,uscite};
 }
 /* presenze alle assemblee: con i nomi di chi mancava, non solo quanti erano */
+/* i verbali vecchi registravano solo quante persone c'erano, non i nomi: il numero vale
+   (finisce nel grafico), ma da li' non si puo' dire CHI mancava. */
+const presenzeSegnatePerNome = v => !!((v.presenti||[]).length || presenzeVerbale(v).stato.size);
 function presenzeAssemblee(quanti=6){
   return DB.verbali.filter(v=>v.tipo==="raduno"&&v.iniziato&&v.data&&!v.annullato)
     .sort((a,b)=>b.data.localeCompare(a.data)).slice(0,quanti)
     .map(v=>{ const iscritti=DB.membri.filter(m=>dentroAl(m,v.data));
       const PV=presenzeVerbale(v);
       const cera=id=>{ const s=PV.stato.get(id); return s?s.stato!=="assente":(v.presenti||[]).includes(id); };
+      const perNo=presenzeSegnatePerNome(v);
       const dentro=iscritti.filter(m=>cera(m.id));
-      return {v, quanti:iscritti.length, presenti:dentro.length,
-        quota: iscritti.length?Math.round(100*dentro.length/iscritti.length):0,
-        assenti:iscritti.filter(m=>!cera(m.id)).sort(perNome)}; });
+      const quanti=perNo?dentro.length:(v.presentiApertura||v.presentiUscita||0);
+      return {v, perNome:perNo, quanti:iscritti.length, presenti:quanti,
+        quota: iscritti.length?Math.round(100*quanti/iscritti.length):0,
+        assenti: perNo ? iscritti.filter(m=>!cera(m.id)).sort(perNome) : []}; });
 }
 /* chi salta le assemblee più spesso degli altri: sopra la metà di quelle tenute */
-function assentiAbituali(lista){
+function assentiAbituali(tutte){
+  /* solo le assemblee con i presenti segnati per nome: dalle altre non si sa chi mancava */
+  const lista=tutte.filter(x=>x.perNome);
   if(lista.length<2) return [];
   const c={};
   lista.forEach(x=>x.assenti.forEach(m=>c[m.id]=(c[m.id]||0)+1));
@@ -2577,6 +2584,7 @@ function chiMancava(x){
       <div class="fl"><span class="lb">Assenti</span><div class="au">${x.assenti.length}</div></div>
       ${(x.v.ospiti||[]).length?`<div class="fl"><span class="lb">Ospiti</span><div class="au">${x.v.ospiti.length}</div></div>`:""}
      </div>
+     ${x.perNome?"":'<div class="avv n">Di questa assemblea è stato registrato solo il numero dei presenti, non i nomi: non si può dire chi mancava.</div>'}
      <span class="lb">Chi mancava</span>
      <div class="pgrid" style="padding:0">${x.assenti.map(m=>
        `<div class="pchip no"><div class="nm">${esc(nomeMembro(m))}</div></div>`).join("")
@@ -5367,7 +5375,10 @@ function assembleeMembro(id, anno){
 /* chi salta le assemblee una dietro l'altra: va sentito */
 function assenzeAssemblee(soglia){
   soglia = soglia || num(DB.impostazioni.sogliaAssemblee) || 3;
-  const A=DB.verbali.filter(v=>v.tipo==="raduno"&&v.iniziato&&!v.annullato&&v.data)
+  /* solo le assemblee con i presenti segnati per nome: da un verbale che riporta solo
+     il numero non si puo' dedurre che qualcuno fosse assente. */
+  const A=DB.verbali.filter(v=>v.tipo==="raduno"&&v.iniziato&&!v.annullato&&v.data
+      && presenzeSegnatePerNome(v))
     .sort((a,b)=>b.data.localeCompare(a.data));
   if(A.length<soglia) return [];
   return attivi().map(m=>{ let n=0;
@@ -6942,7 +6953,7 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="22 · 4 settembre 2026";
+const VERSIONE_APP="23 · 4 settembre 2026";
 const SEZ_IMP=[["documenti","Documenti"],["campo","Dati per il Campo"],["chiese","Chiese conosciute"],
   ["presenze","Presenze"],["dati","Dati e spazio"],["firma","La tua firma"],["prova","Archivio e versione"]];
 VISTE.impostazioni=async ()=>{
