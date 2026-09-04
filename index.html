@@ -188,7 +188,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fr{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 input.i,select.i,textarea.i{border:1px solid var(--bordo);background:var(--sup);border-radius:5px;padding:7px 9px;font-size:14.6px;line-height:20px;width:100%;height:34px;min-height:34px}
 textarea.i{height:auto;min-height:70px;resize:vertical;line-height:1.5}
-input.i[type=date],input.i[type=time]{-webkit-min-logical-width:0}
+input.i[type=date]{-webkit-min-logical-width:0}
 input.i:disabled,select.i:disabled{background:var(--sup2);color:var(--ink2)}
 .au{background:var(--sup2);border:1px dashed var(--bordo);border-radius:5px;padding:7px 9px;font-size:14.6px;color:var(--ink2);display:flex;align-items:center;gap:7px;min-height:34px}
 .au-t{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--blu);background:var(--blu-t);padding:1px 5px;border-radius:2px;margin-left:auto}
@@ -480,7 +480,7 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
   #app{display:none!important}
   #stampa{display:block!important}
   .pgw{width:100%;border-collapse:collapse;table-layout:fixed}
-  .pgw>tbody>tr>td{padding:0 14mm;vertical-align:top}
+  .pgw>tbody>tr>td{padding:0 10mm;vertical-align:top}
   .pgw>thead>tr>td,.pgw>tfoot>tr>td{padding:0}
   .pgw .sp{height:11mm}
   /* la testata sta dentro il thead: il browser la ripete su ogni pagina, centrata.
@@ -1334,11 +1334,34 @@ function collegaFiltro(id, scrivi){
     const n=$("#"+id); if(n){ n.focus(); n.setSelectionRange(p,p); } };
 }
 function campo(et,c,val,tipo="text",extra=""){
+  /* l'orologio nativo di iOS (input type=time) ignora l'altezza e il carattere
+     impostati via CSS e resta sproporzionato rispetto agli altri campi: si scrive
+     l'ora come testo semplice, con formattazione automatica mentre si digita. */
+  if(tipo==="time")
+    return `<div class="fl"><span class="lb">${et}</span>
+      <input class="i oi" type="text" inputmode="numeric" placeholder="hh:mm" maxlength="5"
+        data-c="${c}" value="${esc(val??"")}" ${extra}></div>`;
   const t = tipo==="area"
     ? `<textarea class="i" data-c="${c}" ${extra}>${esc(val??"")}</textarea>`
     : `<input class="i" type="${tipo}" data-c="${c}" value="${esc(val??"")}" ${extra}>`;
   return `<div class="fl"><span class="lb">${et}</span>${t}</div>`;
 }
+/* formattazione dell'ora mentre si digita (aggiunge i due punti da sola) e
+   corretta/completata quando si esce dal campo — delegato una sola volta in fase
+   di cattura, così arriva prima del listener che salva il valore in legaCampi. */
+addEventListener("input", e=>{
+  if(!e.target.classList?.contains("oi")) return;
+  let v=e.target.value.replace(/[^0-9]/g,"").slice(0,4);
+  if(v.length>=3) v=v.slice(0,2)+":"+v.slice(2);
+  e.target.value=v;
+}, true);
+addEventListener("blur", e=>{
+  if(!e.target.classList?.contains("oi")) return;
+  const m=e.target.value.match(/^(\d{1,2}):?(\d{1,2})?$/); if(!m) return;
+  const hh=Math.min(23,+m[1]||0), mm=Math.min(59,+(m[2]||0));
+  e.target.value=`${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+  e.target.dispatchEvent(new Event("input",{bubbles:true}));
+}, true);
 function scelta(et,c,val,opzioni,extra=""){
   const o = opzioni.map(x=>{ const [v,n]=Array.isArray(x)?x:[x,x];
     return `<option value="${esc(v)}"${String(v)===String(val??"")?" selected":""}>${esc(n)}</option>`; }).join("");
@@ -1599,7 +1622,15 @@ function stampa(html, titolo){
     removeEventListener("afterprint", rimettiAPosto);
     document.title = titoloPrima;
     correggiZoom();
-    setTimeout(()=>{ $("#stampa").innerHTML=""; },300);
+    /* se il foglio di condivisione o di stampa è ancora aperto sopra l'app (pagina
+       nascosta), il sistema può star ancora leggendo #stampa per fare il PDF: svuotarlo
+       subito lo lascerebbe vuoto proprio mentre viene condiviso. Si aspetta che l'app
+       torni visibile prima di pulire. */
+    const svuota=()=>{ $("#stampa").innerHTML=""; };
+    if(document.hidden){
+      const attendi=()=>{ if(!document.hidden){ removeEventListener("visibilitychange",attendi); setTimeout(svuota,300); } };
+      addEventListener("visibilitychange", attendi);
+    } else setTimeout(svuota,300);
   };
   addEventListener("afterprint", rimettiAPosto);
   if(typeof window.print!=="function"){
@@ -1611,8 +1642,10 @@ function stampa(html, titolo){
   catch(e){ rimettiAPosto();
     avvisa("Stampa bloccata","Il browser ha bloccato la stampa. Se stai guardando l'app dentro un'anteprima online, aprila dal file salvato sul dispositivo."); }
   /* alcuni browser (soprattutto in un'app installata) non mandano mai «afterprint»:
-     un ripristino di sicurezza dopo un po', nel caso non sia già stato fatto */
-  setTimeout(rimettiAPosto, 4000);
+     un ripristino di sicurezza dopo un po', nel caso non sia già stato fatto. Tenuto largo
+     apposta: se è ancora aperto il foglio di condivisione (AirDrop, Salva su File…) non
+     deve svuotare #stampa mentre il sistema lo sta ancora leggendo per fare il PDF. */
+  setTimeout(rimettiAPosto, 30000);
 }
 /* La cartella dei backup si sceglie una volta e l'app scrive sempre lì, tenendo gli
    ultimi 10 file: un backup fatto per sbaglio non cancella più i dati di prima.
@@ -3148,7 +3181,7 @@ function editorVerbale(v){
           <div class="pn-b">
             <div class="fr">${campo("Data","data",v.data,"date")}
               <div class="fl"><span class="lb">Ora apertura</span><div style="display:flex;gap:6px;align-items:center">
-                <input class="i" type="time" data-c="oraApertura" value="${esc(v.oraApertura)}" ${prep?"disabled":""} style="min-width:0">
+                <input class="i oi" type="text" inputmode="numeric" placeholder="hh:mm" maxlength="5" data-c="oraApertura" value="${esc(v.oraApertura)}" ${prep?"disabled":""} style="min-width:0">
                 ${prep?"":'<button class="bt sm" data-ora="oraApertura" style="flex-shrink:0">adesso</button>'}</div></div>
               ${isRio?"":`<div class="fl"><span class="lb">Numero</span><div class="au">n. ${v.numero}<span class="au-t">auto</span></div></div>`}</div>
             <div class="fr">
@@ -3610,7 +3643,7 @@ function letturaHTML(v){
 function chiudiVerbale(v){
   modale({titolo:"Chiudi il verbale",corpo:
     `<div class="fr">
-      <div class="fl"><span class="lb">Ora di chiusura</span><input class="i" type="time" data-c="__o" value="${esc(v.oraChiusura||oraOra())}"></div>
+      <div class="fl"><span class="lb">Ora di chiusura</span><input class="i oi" type="text" inputmode="numeric" placeholder="hh:mm" maxlength="5" data-c="__o" value="${esc(v.oraChiusura||oraOra())}"></div>
       ${campo("Preghiera di chiusura","__p",v.preghieraChiusura)}
       ${campo("Presenti in uscita","__u",v.presenti.length,"number")}</div>
      <div class="avv n">Dopo la chiusura si passa alle firme. Se serve, il verbale si può ancora riaprire e correggere.</div>`,
