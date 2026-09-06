@@ -16,13 +16,15 @@
 <style id="css">
 :root{
   --carta:#FBFBF8; --sup:#FFFFFF; --sup2:#F5F6F1; --sup3:#F1F2ED;
-  --ink:#191D1B; --ink2:#5C635E; --ink3:#949B94;
-  --bordo:#E0E2D9; --bordo2:#D3D6CB;
-  --blu:#17369B; --blu-t:#E7EAF7;
-  --timbro:#A33B2A; --timbro-t:#F7E9E5;
-  --verde:#2A6349; --verde-t:#E4EFE9;
-  --ocra:#8A6A1F; --ocra-t:#F6EFDC;
-  --viola:#5B3E86; --viola-t:#EDE7F5;
+  /* i grigi chiari si leggevano male sull'iPad in chiesa, con la luce di fianco:
+     ink2/ink3 e i bordi sono stati scuriti fin dove il contrasto AA regge. */
+  --ink:#101311; --ink2:#3E453F; --ink3:#666D66;
+  --bordo:#CFD3C7; --bordo2:#AFB4A6;
+  --blu:#122B7D; --blu-t:#DEE3F4;
+  --timbro:#8C2E1E; --timbro-t:#F5E1DC;
+  --verde:#1F4E38; --verde-t:#DBEAE2;
+  --ocra:#6E5314; --ocra-t:#F2E7CC;
+  --viola:#4A3070; --viola-t:#E6DEF2;
   --serif:"Spectral",Georgia,"Times New Roman",serif;
   --sans:"Public Sans","Helvetica Neue",Arial,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
@@ -56,6 +58,15 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sb-cerca input::placeholder{color:var(--ink3)}
 .sb-cerca .qx{border:0;background:none;color:var(--ink3);font-size:17px;line-height:1;padding:0 1px;cursor:pointer;flex:none}
 .sb-cerca .qx:hover{color:var(--ink)}
+/* la × che svuota la casella di ricerca in un tocco, la stessa dappertutto */
+.scheda-v{display:flex;flex-direction:column;gap:9px;margin-bottom:13px}
+.scheda-v>div{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;font-size:14.6px;line-height:1.45}
+.scheda-v .lb{flex:0 0 170px}
+.cxw{position:relative;display:block;min-width:0}
+.cxw input.i{padding-right:27px}
+.cxw>.qx{position:absolute;right:3px;top:50%;transform:translateY(-50%);border:0;background:none;
+  color:var(--ink2);font-size:19px;line-height:1;padding:0 5px;cursor:pointer}
+.cxw>.qx:hover{color:var(--ink)}
 .sb-f{margin-top:auto;padding:10px 8px 0;border-top:1px solid var(--bordo);font-family:var(--mono);font-size:10.6px;color:var(--ink3);line-height:1.55}
 .sb-f b{color:var(--verde);font-weight:500}
 .sb-f.dabk{border-top:2px solid var(--ocra);background:var(--ocra-t);border-radius:5px;padding:8px;color:var(--ocra)}
@@ -200,6 +211,10 @@ input.i:disabled,select.i:disabled{background:var(--sup2);color:var(--ink2)}
 .au{background:var(--sup2);border:1px dashed var(--bordo);border-radius:5px;padding:7px 9px;font-size:14.6px;color:var(--ink2);display:flex;align-items:center;gap:7px;min-height:34px}
 .au-t{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--blu);background:var(--blu-t);padding:1px 5px;border-radius:2px;margin-left:auto}
 .vuoto{padding:26px 16px;text-align:center;color:var(--ink3);font-size:14.6px}
+.oent{font-family:var(--mono);font-size:10.6px;color:var(--verde);font-weight:600}
+.oent.lb2{color:var(--ink3);margin-left:7px;font-weight:400}
+.sabtab .rit{font-family:var(--mono);font-size:10.6px;color:var(--ocra);margin-left:8px}
+.sabtab th i{display:block;font-family:var(--mono);font-size:9px;font-style:normal;color:var(--ink3);letter-spacing:.04em}
 .tg{width:36px;height:21px;border-radius:11px;background:var(--bordo2);position:relative;flex:none;border:0;cursor:pointer;padding:0}
 .tg::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .12s}
 .tg.on{background:var(--verde)}
@@ -735,7 +750,10 @@ const uid = ()=> (crypto.randomUUID ? crypto.randomUUID() : "id"+Date.now()+Math
 const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MESI = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
 const GIORNI = ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
-const oggiISO = ()=> new Date().toISOString().slice(0,10);
+/* l'ora e la data vengono sempre dall'orologio del dispositivo, mai dalla rete:
+   toISOString() pero' e' in UTC e a fine giornata dava il giorno sbagliato. */
+const oggiISO = ()=> localeISO(new Date());
+const localeISO = d => new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
 const dataBreve = iso => iso ? iso.split("-").reverse().join(".") : "";
 const dataIT = iso => iso ? iso.split("-").reverse().join("/") : "";
 function dataLunga(iso){ if(!iso) return ""; const d=new Date(iso+"T12:00:00");
@@ -1796,8 +1814,19 @@ function legaCampi(root, oggetto, dopo){
 /* una casella di ricerca uguale dappertutto: scrive nella variabile e ridisegna
    senza perdere il cursore. Serve in membri, movimenti, incarichi, verbali, lettere. */
 function filtro(id, valore, segnaposto){
-  return `<input class="i" id="${id}" placeholder="${esc(segnaposto)}" value="${esc(valore)}" autocomplete="off">`;
+  return conX(`<input class="i" id="${id}" placeholder="${esc(segnaposto)}" value="${esc(valore)}" autocomplete="off">`, valore);
 }
+/* una × dentro la casella: cancella quello che c'è scritto senza tenere premuto
+   il tasto indietro. Compare solo quando c'è qualcosa da cancellare. */
+function conX(inputHtml, valore, stile){
+  return `<span class="cxw"${stile?` style="${esc(stile)}"`:""}>${inputHtml}${
+    String(valore||"").length?'<button class="qx" data-qx-in title="cancella">×</button>':""}</span>`;
+}
+addEventListener("click", e=>{
+  const b=e.target.closest?.("[data-qx-in]"); if(!b) return;
+  const i=b.parentNode.querySelector("input"); if(!i) return;
+  i.value=""; i.dispatchEvent(new Event("input",{bubbles:true}));
+});
 function collegaFiltro(id, scrivi){
   const c=$("#"+id); if(!c) return;
   c.oninput=()=>{ const p=c.selectionStart; scrivi(c.value); disegna();
@@ -2861,7 +2890,7 @@ VISTE.membri = (arg)=>{
     ${mbScheda==="movimenti" ? vistaMovimenti() : `
     <div class="cols" style="grid-template-columns:.78fr 1.22fr;flex:1">
       <div><div class="pn gro">
-        <div class="pn-h"><input class="i" id="cerca-m" placeholder="Cerca nome, telefono, incarico…" value="${esc(mbCerca)}"></div>
+        <div class="pn-h">${conX(`<input class="i" id="cerca-m" placeholder="Cerca nome, telefono, incarico…" value="${esc(mbCerca)}">`, mbCerca, "flex:1")}</div>
         <div class="pn-b t0">${lista.map(m=>{
           const c=caricheDi(m.id), st=statoMembro(m);
           return `<div class="rw cl ${m.id===mbSel?"on":""}" data-m="${m.id}">
@@ -3930,8 +3959,8 @@ function editorVerbale(v){
           ${v.iniziato && v.presentiApertura!=null && v.presentiApertura!==v.presenti.length
             ? `<span class="cp">in apertura ${v.presentiApertura}</span><span class="cp v">adesso ${v.presenti.length}${isCom?` di ${elencoPresenza.length}`:""}</span>`
             : `<span class="cp v">${v.presenti.length}${isCom?` di ${elencoPresenza.length}`:""}</span>`}
-          <input class="i psh" id="qpres" placeholder="Cerca un nome…" value="${esc(presCerca)}" autocomplete="off"
-            style="flex:0 1 220px;min-width:110px;padding:4px 8px;font-size:13.4px">
+          ${conX(`<input class="i psh" id="qpres" placeholder="Cerca un nome…" value="${esc(presCerca)}" autocomplete="off"
+            style="min-width:110px;padding:4px 8px;font-size:13.4px">`, presCerca, "flex:0 1 220px")}
           <button class="bt sm" data-ptutti>Tutti</button><button class="bt sm" data-pnessuno>Nessuno</button>
           <button class="bt sm" data-oadd2>+ Ospite</button></div>
           <div class="pn-b t0">${elencoFiltrato.length
@@ -5146,7 +5175,11 @@ const FUNZIONI=[["preghiera","Ora di preghiera"],["scuola","Scuola del Sabato"],
                 ["predica","Predicazione"],["pomeriggio","Programma di pomeriggio"]];
 const NOME_FUNZ=Object.fromEntries(FUNZIONI);
 const MATTINA=["preghiera","scuola","predica"];
-const ORARI={preghiera:"9:00",scuola:"9:30",predica:"11:00",pomeriggio:"orario variabile"};
+const ORARI={preghiera:"9:00–9:30",scuola:"9:30–11:00",predica:"11:00–12:00",pomeriggio:"circa un'ora"};
+/* quanto dura ogni funzione, in minuti: serve a dire se uno c'era tutta la mattina
+   o e' arrivato a meta', esattamente come si fa in assemblea. */
+const DURATA_FUNZ={preghiera:30,scuola:90,predica:60,pomeriggio:60};
+const INIZIO_FUNZ={preghiera:"9:00",scuola:"9:30",predica:"11:00",pomeriggio:""};
 const BREVE_FUNZ={preghiera:"Preghiera",scuola:"Scuola",predica:"Predica",pomeriggio:"Pomeriggio"};
 /* le fasce sono quelle del modulo del Campo, così i numeri della scuola del sabato
    si compilano da soli invece di andare a occhio */
@@ -5160,8 +5193,8 @@ const fasciaEta = e => (e===null||e===undefined) ? "i21" : (FASCE.find(f=>e>=f[2
 const MOTIVI_SABATO=["Conferenza","Raduno di campo","Nessun programma in chiesa","Programma fuori sede","Altro"];
 const sabatoNormale = s => !s.escluso;
 function nuovoSabato(data){
-  const s={id:uid(),data,f:{},osp:{},anon:{},note:"",escluso:false,motivo:""};
-  FUNZIONI.forEach(([k])=>{ s.f[k]=[]; s.osp[k]=[]; s.anon[k]=fasceVuote(); });
+  const s={id:uid(),data,f:{},osp:{},anon:{},ore:{},note:"",escluso:false,motivo:""};
+  FUNZIONI.forEach(([k])=>{ s.f[k]=[]; s.osp[k]=[]; s.anon[k]=fasceVuote(); s.ore[k]={}; });
   DB.sabati.push(s); ordinaSabati(); salva(); return s;
 }
 const fasceVuote = ()=>Object.fromEntries(CHIAVI_FASCE.map(k=>[k,0]));
@@ -5192,6 +5225,25 @@ function piccoSabato(s){
     .sort((a,b)=>b.tot-a.tot || FUNZIONI.findIndex(z=>z[0]===a.k)-FUNZIONI.findIndex(z=>z[0]===b.k));
   return f[0]||{k:"scuola",nome:"Scuola del Sabato",membri:0,ospiti:0,tot:0};
 }
+/* come in assemblea: chi arriva alla predica non e' un assente, e' un presente in
+   ritardo. Si contano i minuti del mattino (preghiera 30 + scuola 90 + predica 60)
+   rispetto ai 180 totali: da tre quarti in su e' presente, sotto un quarto e'
+   assente, in mezzo e' «in parte». L'ora di entrata e' quella segnata al tocco
+   (s.ore), e se manca si usa l'orario d'inizio della prima funzione a cui c'era. */
+const MATTINA_MIN = MATTINA.reduce((a,k)=>a+DURATA_FUNZ[k],0);
+function statoSabato(s,id){
+  const dove = MATTINA.filter(k=>(s.f[k]||[]).includes(id));
+  const minuti = dove.reduce((a,k)=>a+DURATA_FUNZ[k],0);
+  const quota = MATTINA_MIN ? minuti/MATTINA_MIN : 0;
+  const prima = dove[0]||null;
+  const entrata = prima ? (((s.ore||{})[prima]||{})[id] || INIZIO_FUNZ[prima]) : null;
+  return {dove, minuti, quota, entrata,
+    stato: quota>=.75 ? "presente" : quota>=.25 ? "parziale" : minuti ? "parziale" : "assente",
+    ritardo: !!prima && prima!==MATTINA[0]};
+}
+const oraSabato = (s,k,id) => ((s.ore||{})[k]||{})[id] || "";
+/* il totale di una funzione: membri + ospiti con nome + ospiti a conteggio, in un numero solo */
+const totaleFunzione = (s,k) => (s.f[k]||[]).length + (s.osp[k]||[]).length + sommaFasce((s.anon||{})[k]);
 const sabatiOrdinati = (soloNormali)=> DB.sabati.slice()
   .filter(s=>!soloNormali || sabatoNormale(s)).sort((a,b)=>b.data.localeCompare(a.data));
 /* chi non si vede da parecchi sabati di fila (i sabati senza programma non contano) */
@@ -5492,8 +5544,9 @@ function dettaglioSabato(s){
   const fuori=attivi().filter(m=>!pres.includes(m.id)).sort(perNome);
   const ospPres=[...new Set(FUNZIONI.flatMap(([k])=>s.osp[k]||[]))];
   const pallino=(si,cls)=>`<span class="pt${si?(cls?" "+cls:""):" no"}"></span>`;
-  const riga=(nome,tocca,cls)=>`<tr${cls?` class="${cls}"`:""}>
-    <td>${esc(nome)}</td>${FUNZIONI.map(([k])=>`<td class="c">${pallino(tocca(k), cls==="osp"?"osp":"")}</td>`).join("")}</tr>`;
+  const riga=(nome,tocca,cls,extra,ore)=>`<tr${cls?` class="${cls}"`:""}>
+    <td>${esc(nome)}${extra||""}</td>${FUNZIONI.map(([k])=>`<td class="c"${ore&&ore(k)?` title="segnato alle ${esc(ore(k))}"`:""}>${
+      ore&&ore(k)?`<span class="oent">${esc(ore(k))}</span>`:pallino(tocca(k), cls==="osp"?"osp":"")}</td>`).join("")}</tr>`;
   const fasceRiga = k => FASCE.filter(f=>((s.anon||{})[k]||{})[f[0]])
     .map(f=>`${((s.anon||{})[k]||{})[f[0]]}×${f[1].replace(" anni","")}`).join(", ");
   const anonC = k => sommaFasce((s.anon||{})[k]);
@@ -5509,8 +5562,13 @@ function dettaglioSabato(s){
         <div class="sabwrap"><table class="sabtab">
           <tr><th>${dentro.length+ospPres.length?"Chi c'era":"Nessuno"}</th>
             ${FUNZIONI.map(([k,n])=>`<th title="${esc(n)} · ${ORARI[k]}">${esc(BREVE_FUNZ[k])}
-              <span>${(s.f[k]||[]).length}${anonC(k)||(s.osp[k]||[]).length?`<i>+${(s.osp[k]||[]).length+anonC(k)}</i>`:""}</span></th>`).join("")}</tr>
-          ${dentro.map(m=>riga(nomeMembro(m), k=>(s.f[k]||[]).includes(m.id))).join("")}
+              <span>${totaleFunzione(s,k)}</span><i>${esc(ORARI[k])}</i></th>`).join("")}</tr>
+          ${dentro.map(m=>{ const st=statoSabato(s,m.id);
+            const nota = st.stato==="parziale"
+              ? `<span class="rit">${st.entrata?"in ritardo, alle "+esc(st.entrata):"solo una parte"}</span>`
+              : st.entrata ? `<span class="oent lb2">dalle ${esc(st.entrata)}</span>` : "";
+            return riga(nomeMembro(m), k=>(s.f[k]||[]).includes(m.id), null, nota,
+              k=>(s.f[k]||[]).includes(m.id)?oraSabato(s,k,m.id):"");}).join("")}
           ${ospPres.map(id=>riga(nomeOspite(id)+" — ospite", k=>(s.osp[k]||[]).includes(id), "osp")).join("")}
           ${FUNZIONI.some(([k])=>anonC(k))?`<tr class="osp"><td>Ospiti senza nome</td>
             ${FUNZIONI.map(([k])=>`<td class="c">${anonC(k)?`<b title="${esc(fasceRiga(k))}">${anonC(k)}</b>`:'<span class="pt no"></span>'}</td>`).join("")}</tr>`:""}
@@ -5534,8 +5592,8 @@ function segnaSabato(){
   const noti = (DB.ospitiNoti||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome,"it"));
 
   schermo(testata("Sto segnando le presenze",
-    s?`${dataLunga(s.data)}${s.escluso?" · "+esc(s.motivo||"non si conta")
-      :` · ${piccoSabato(s).tot} presenti alla ${piccoSabato(s).nome.toLowerCase()}`}`:"sabato da registrare",
+    s?`${dataLunga(s.data)} · ${dataBreve(s.data)}${s.escluso?" · "+esc(s.motivo||"non si conta")
+      :` — <b>${piccoSabato(s).tot} present${piccoSabato(s).tot===1?"e":"i"} in tutto</b> (${piccoSabato(s).nome.toLowerCase()}, il momento più pieno) · adesso alla ${esc(NOME_FUNZ[sabFunz].toLowerCase())}: ${totaleFunzione(s,sabFunz)}`}`:"sabato da registrare",
     `<button class="bt psh" data-indietro>← Tutti i sabati</button>
      <button class="bt pri" data-fine>Fine</button>`) +
   `<div class="cn">
@@ -5554,12 +5612,12 @@ function segnaSabato(){
     :`<div class="cols" style="grid-template-columns:1.5fr 1fr;flex:1">
       <div>
         <div class="tab">${FUNZIONI.map(([k,n])=>
-          `<button class="${sabFunz===k?"on":""}" data-fz="${k}">${esc(n)} &nbsp;<b>${(s.f[k]||[]).length}</b></button>`).join("")}</div>
+          `<button class="${sabFunz===k?"on":""}" data-fz="${k}" title="${esc(n)} · ${ORARI[k]}">${esc(n)} &nbsp;<b>${totaleFunzione(s,k)}</b></button>`).join("")}</div>
         <div class="pn gro pres">
           <div class="pn-h"><span class="lb">${esc(NOME_FUNZ[sabFunz])}</span>
             <span class="cp v">${dentro(sabFunz).length} di ${L.length}</span>
-            <input class="i psh" id="qsab" placeholder="Cerca un nome…" value="${esc(sabCerca)}" autocomplete="off"
-              style="flex:0 1 200px;min-width:110px;padding:4px 8px;font-size:13.4px">
+            ${conX(`<input class="i psh" id="qsab" placeholder="Cerca un nome…" value="${esc(sabCerca)}" autocomplete="off"
+              style="min-width:110px;padding:4px 8px;font-size:13.4px">`, sabCerca, "flex:0 1 200px")}
             ${daCopiare?`<button class="bt sm" data-copia="${daCopiare[0]}">Come ${esc(daCopiare[1].toLowerCase())}</button>`:""}
             <button class="bt sm" data-stutti>Tutti</button><button class="bt sm" data-snessuno>Nessuno</button></div>
           <div class="pn-b t0">${vis.length?`<div class="pgrid">${vis.map(m=>
@@ -5588,7 +5646,7 @@ function segnaSabato(){
           <div class="pn-b t0" style="flex:none"><table class="t2">
             ${FUNZIONI.map(([k,n])=>{ const osp=(s.osp[k]||[]).length+sommaFasce((s.anon||{})[k]);
               return `<tr><td>${esc(n)}<span style="color:var(--ink3)"> · ${ORARI[k]}</span></td>
-              <td>${(s.f[k]||[]).length}${osp?` <span style="color:var(--ocra)">+${osp}</span>`:""}</td></tr>`;}).join("")}
+              <td><b>${totaleFunzione(s,k)}</b>${osp?` <span style="color:var(--ocra);font-size:.85em">di cui ${osp} ospit${osp===1?"e":"i"}</span>`:""}</td></tr>`;}).join("")}
             <tr class="tt"><td>Il momento più pieno</td><td style="white-space:nowrap">${piccoSabato(s).tot} · ${esc(piccoSabato(s).nome.toLowerCase())}</td></tr>
             <tr><td>Membri al mattino</td><td style="white-space:nowrap">${presentiSabato(s).length} di ${L.length}</td></tr>
           </table></div>
@@ -5608,8 +5666,14 @@ function segnaSabato(){
   $("#tipoSab").onchange=e=>{ s.motivo=e.target.value; s.escluso=!!e.target.value; salva(); disegna(); };
   if(s.escluso) return;
   $$("[data-fz]").forEach(b=>b.onclick=()=>{ sabFunz=b.dataset.fz; disegna(); });
+  /* spuntare un nome segna anche l'ora vera del tocco: cosi' nel dettaglio si vede
+     chi e' arrivato in orario e chi e' entrato a meta' scuola del sabato. */
   $$("[data-sp]").forEach(b=>b.onclick=()=>{ const id=b.dataset.sp, l=s.f[sabFunz]=s.f[sabFunz]||[];
-    const i=l.indexOf(id); if(i<0) l.push(id); else l.splice(i,1); salva(); disegna(); });
+    const i=l.indexOf(id);
+    s.ore=s.ore||{}; s.ore[sabFunz]=s.ore[sabFunz]||{};
+    if(i<0){ l.push(id); s.ore[sabFunz][id]=oraOra(); }
+    else { l.splice(i,1); delete s.ore[sabFunz][id]; }
+    salva(); disegna(); });
   $$("[data-so]").forEach(b=>b.onclick=()=>{ const id=b.dataset.so;
     const l=s.osp[sabFunz]=s.osp[sabFunz]||[];
     const i=l.indexOf(id); if(i<0) l.push(id); else l.splice(i,1); salva(); disegna(); });
@@ -5617,12 +5681,17 @@ function segnaSabato(){
     (k,val)=>{ s.anon=s.anon||{}; s.anon[sabFunz]=s.anon[sabFunz]||fasceVuote();
       s.anon[sabFunz][k.slice(2)]=val; salva(); }, ()=>disegna());
   collegaFiltro("qsab",t=>{ sabCerca=t; });
-  $("[data-stutti]").onclick=()=>{ s.f[sabFunz]=[...new Set([...(s.f[sabFunz]||[]), ...vis.map(m=>m.id)])]; salva(); disegna(); };
+  $("[data-stutti]").onclick=()=>{ const ora=oraOra();
+    s.ore=s.ore||{}; s.ore[sabFunz]=s.ore[sabFunz]||{};
+    vis.forEach(m=>{ if(!s.ore[sabFunz][m.id]) s.ore[sabFunz][m.id]=ora; });
+    s.f[sabFunz]=[...new Set([...(s.f[sabFunz]||[]), ...vis.map(m=>m.id)])]; salva(); disegna(); };
   $("[data-snessuno]").onclick=()=>{ const via=new Set(vis.map(m=>m.id));
-    s.f[sabFunz]=(s.f[sabFunz]||[]).filter(id=>!via.has(id)); salva(); disegna(); };
+    s.f[sabFunz]=(s.f[sabFunz]||[]).filter(id=>!via.has(id));
+    via.forEach(id=>{ if((s.ore||{})[sabFunz]) delete s.ore[sabFunz][id]; }); salva(); disegna(); };
   $("[data-copia]")?.addEventListener("click",e=>{ const k=e.currentTarget.dataset.copia;
     s.f[sabFunz]=[...(s.f[k]||[])]; s.osp[sabFunz]=[...(s.osp[k]||[])];
-    s.anon=s.anon||{}; s.anon[sabFunz]={...((s.anon||{})[k]||fasceVuote())}; salva(); disegna(); });
+    s.anon=s.anon||{}; s.anon[sabFunz]={...((s.anon||{})[k]||fasceVuote())};
+    s.ore=s.ore||{}; s.ore[sabFunz]={...((s.ore||{})[k]||{})}; salva(); disegna(); });
   $("[data-ospadd]").onclick=()=>nuovoOspite(o=>{
     (s.osp[sabFunz]=s.osp[sabFunz]||[]).push(o.id); salva(); disegna(); });
 }
@@ -6194,7 +6263,7 @@ VISTE.inventario=()=>{
      <button class="bt" data-exp>Esporta</button>
      <button class="bt pri" data-nuovo>Nuova voce</button>`) +
   `<div class="cn">
-    <input class="i" id="ic" placeholder="Cerca oggetto, categoria, ubicazione…" value="${esc(invCerca)}">
+    ${conX(`<input class="i" id="ic" placeholder="Cerca oggetto, categoria, ubicazione…" value="${esc(invCerca)}">`, invCerca, "flex:none")}
     <div class="tab"><span class="lb">Categoria</span>
       <button class="${!invCat?"on":""}" data-cat="">Tutte</button>
       ${cats.map(c=>`<button class="${invCat===c?"on":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}</div>
@@ -6293,7 +6362,13 @@ function voceInventario(o){
   const {el}=modale({titolo:nuovo?"Nuova voce":esc(o.nome),corpo:
     `<div class="fr">${campo("Nome","nome",c.nome)}
       <div class="fl"><span class="lb">Categoria</span>
-        <input class="i" list="catlist" data-c="categoria" value="${esc(c.categoria||"")}">
+        <select class="i" id="catsel">
+          <option value="">— scegli una categoria —</option>
+          ${cats.map(x=>`<option value="${esc(x)}"${c.categoria===x?" selected":""}>${esc(x)}</option>`).join("")}
+          <option value="__nuova"${c.categoria&&!cats.includes(c.categoria)?" selected":""}>+ nuova categoria…</option>
+        </select>
+        <input class="i" id="catnew" list="catlist" data-c="categoria" value="${esc(c.categoria||"")}"
+          placeholder="oppure scrivila qui">
         <datalist id="catlist">${cats.map(x=>`<option value="${esc(x)}">`).join("")}</datalist></div>
       ${campo("Dove si trova","ubicazione",c.ubicazione)}</div>
      <div class="fr">${campo("Quantità","quantita",c.quantita,"number")}${campo("Anno","anno",c.anno,"number")}
@@ -6311,6 +6386,14 @@ function voceInventario(o){
       {testo:"Annulla",fn:()=>{}},
       {testo:"Salva",cls:"pri",destra:true,fn:()=>{ Object.assign(o,c); if(nuovo) DB.inventario.push(o); salva(); disegna(); }}]});
   legaCampi(el,c);
+  /* la tendina riempie la casella; «+ nuova categoria» la svuota e lascia scrivere.
+     La casella resta sempre modificabile: la categoria vera è quella scritta lì. */
+  const csel=$("#catsel",el), cnew=$("#catnew",el);
+  csel.onchange=()=>{ cnew.value = csel.value==="__nuova" ? "" : csel.value;
+    cnew.dispatchEvent(new Event("input",{bubbles:true}));
+    if(csel.value==="__nuova") cnew.focus(); };
+  cnew.addEventListener("input",()=>{ const v=cnew.value.trim();
+    csel.value = [...csel.options].some(o=>o.value===v && v) ? v : (v?"__nuova":""); });
   $("#fadd",el).onclick=()=>scegliImmagine(async d=>{
     await mediaElimina(c.foto); c.foto=await mediaSalva(d);
     $("#fbox",el).innerHTML=`<img src="${d}" style="max-height:160px;border-radius:6px">`; },900,.72);
@@ -6953,7 +7036,13 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="23 · 4 settembre 2026";
+const VERSIONE_APP="24 · 6 settembre 2026";
+const AGGIORNATA_IL="6 settembre 2026";
+const CREDITI="Scritta per la Chiesa del Casentino (SDARM) da Edoardo Birla, segretario, con Claude Code.";
+/* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
+   si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
+if(location.protocol.startsWith("http") && "serviceWorker" in navigator)
+  addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 const SEZ_IMP=[["documenti","Documenti"],["campo","Dati per il Campo"],["chiese","Chiese conosciute"],
   ["presenze","Presenze"],["dati","Dati e spazio"],["firma","La tua firma"],["prova","Archivio e versione"]];
 VISTE.impostazioni=async ()=>{
@@ -7061,6 +7150,14 @@ VISTE.impostazioni=async ()=>{
       <div class="pn gro"><div class="pn-h"><span class="lb">Archivio e versione</span>
           <span class="cp b psh">versione ${esc(VERSIONE_APP)}</span></div>
         <div class="pn-b">
+          <div class="scheda-v">
+            <div><span class="lb">Versione</span><b>${esc(VERSIONE_APP)}</b></div>
+            <div><span class="lb">Ultimo aggiornamento</span>${esc(AGGIORNATA_IL)}</div>
+            <div><span class="lb">Senza rete</span>${"serviceWorker" in navigator
+              ? "sì — l'app resta in memoria e si apre anche senza collegamento"
+              : "sì, se la apri dal file salvato sul dispositivo"}</div>
+            <div><span class="lb">Chi l'ha fatta</span>${esc(CREDITI)}</div>
+          </div>
           <div class="avv b">Questa versione dell'app porta con sé l'<b>archivio della chiesa</b>:
             48 membri, gli incarichi 2026, dieci verbali firmati (compresa la riorganizzazione del
             24 gennaio) e 69 voci di inventario con le foto.<br>
