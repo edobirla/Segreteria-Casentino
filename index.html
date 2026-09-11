@@ -7036,9 +7036,9 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="24 · 6 settembre 2026";
+const VERSIONE_APP="26";
 const AGGIORNATA_IL="6 settembre 2026";
-const CREDITI="Scritta per la Chiesa del Casentino (SDARM) da Edoardo Birla, segretario, con Claude Code.";
+const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
 if(location.protocol.startsWith("http") && "serviceWorker" in navigator)
@@ -7153,9 +7153,6 @@ VISTE.impostazioni=async ()=>{
           <div class="scheda-v">
             <div><span class="lb">Versione</span><b>${esc(VERSIONE_APP)}</b></div>
             <div><span class="lb">Ultimo aggiornamento</span>${esc(AGGIORNATA_IL)}</div>
-            <div><span class="lb">Senza rete</span>${"serviceWorker" in navigator
-              ? "sì — l'app resta in memoria e si apre anche senza collegamento"
-              : "sì, se la apri dal file salvato sul dispositivo"}</div>
             <div><span class="lb">Chi l'ha fatta</span>${esc(CREDITI)}</div>
           </div>
           <div class="avv b">Questa versione dell'app porta con sé l'<b>archivio della chiesa</b>:
