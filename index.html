@@ -79,6 +79,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 .tb{display:flex;align-items:center;gap:11px;padding:14px 22px;border-bottom:1px solid var(--bordo);flex-wrap:wrap;flex:none;min-width:0;background:var(--sup);padding-top:calc(14px + env(safe-area-inset-top))}
 .tb h4{font-family:var(--serif);font-size:23.5px;font-weight:600;margin:0;letter-spacing:-.012em}
 .tb .sub{font-family:var(--mono);font-size:11.2px;letter-spacing:.07em;color:var(--ink3);text-transform:uppercase}
+.frecce{display:flex;gap:6px;flex:none}
+.fr-b{width:32px;height:32px;flex:none;border-radius:50%;border:1px solid var(--bordo);background:var(--sup);
+  display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;cursor:pointer;color:var(--ink)}
+.fr-b:hover{background:var(--sup2)}
+.fr-b[disabled]{opacity:.35;pointer-events:none}
 .cn{padding:18px 22px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:15px;flex:1;min-width:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
 
 .bt{border:1px solid var(--bordo2);background:var(--sup);border-radius:6px;padding:7px 12px;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer;min-height:34px}
@@ -392,6 +397,8 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 .foglio .dc .ora{font-family:var(--mono);font-size:.72em;color:#9A9A94;display:block}
 .foglio .scad{font-family:var(--sans);font-size:.82em;color:#8A3020;margin:.3em 0 0}
 .foglio .scad.ok{color:#2A6349}
+.foglio .nota-dec{font-family:var(--sans);font-style:italic;font-size:.82em;color:#7A7A74;margin:.3em 0 0}
+.foglio .nota-dec .et{font-style:normal;font-weight:600}
 /* inventario stampato: colonne allineate e numeri a destra */
 .foglio table.inv{width:100%;border-collapse:collapse;font-size:.96em;table-layout:fixed}
 .foglio table.inv th{text-align:left;font-family:var(--sans);font-size:.74em;font-weight:600;letter-spacing:.1em;
@@ -728,6 +735,12 @@ function ripetiModifica(){
   UNDO.push(DB_ULTIMO); DB_ULTIMO=REDO.pop(); DB=JSON.parse(DB_ULTIMO);
   ARCH.scriviDoc(DB); disegna();
 }
+/* le frecce stanno nella testata di ogni schermata (disegnata di nuovo da ogni
+   vista): un solo ascoltatore delegato, invece di riattaccarlo a ogni disegna(). */
+addEventListener("click", e=>{
+  if(e.target.closest?.("[data-undo]")) annullaModifica();
+  else if(e.target.closest?.("[data-redo]")) ripetiModifica();
+});
 function salva(){
   /* la spia in fondo al menu si accende alla prima modifica e resta accesa
      finché non si fa il backup: senza finestre a tutto schermo dopo ogni tasto. */
@@ -899,7 +912,7 @@ const VUOTI_VERBALE={straordinario:false, numero:null, iniziato:false, oraApertu
   presiedeId:"", dirigenteId:"", segretarioId:"", meditazione:"", inno:"",
   preghieraApertura:"", preghieraChiusura:"", presenti:[], ospiti:[], odg:[], decisioni:[],
   decisioniVoto:[], decisioniVotoId:[], decisioniOra:[], decisioniScadenza:[], decisioniNote:[], cronologia:[],
-  letturaPrecedente:null, votazioni:[], elezioni:[], impegniChiusi:[], modifiche:[],
+  discussioni:[], letturaPrecedente:null, votazioni:[], elezioni:[], impegniChiusi:[], modifiche:[],
   presentiApertura:null, presentiUscita:null, stato:"preparazione", annullato:null,
   incarichiApplicati:false, decorrenza:null, correzione:false};
 const VUOTI_MEMBRO={cognome:"", nome:"", sesso:"M", nato:"", cittadinanza:"", telefono:"", email:"",
@@ -1808,10 +1821,6 @@ function disegna(){
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
         <input id="qglob" placeholder="Cerca" value="${esc(CERCA)}" autocomplete="off">
         ${CERCA?'<button class="qx" data-qx title="cancella">×</button>':""}</label>
-      <div style="display:flex;gap:6px;padding:0 10px 8px">
-        <button class="bt sm" id="btUndo" data-undo title="Annulla l'ultima modifica" style="flex:1" ${UNDO.length?"":"disabled"}>↶ Annulla</button>
-        <button class="bt sm" id="btRedo" data-redo title="Ripristina la modifica annullata" style="flex:1" ${REDO.length?"":"disabled"}>↷ Ripeti</button>
-      </div>
       ${menu}
       <div class="sb-f${DB.impostazioni.daBackup?" dabk":""}" id="sbf">
         <span id="bkStato">${DB.impostazioni.daBackup?"Modifiche da salvare":"Ultimo backup"}</span><br>
@@ -1820,8 +1829,6 @@ function disegna(){
     </aside><main class="mn" id="mn"></main>`;
   $$("[data-vai]").forEach(b=>b.onclick=()=>vai(b.dataset.vai));
   $("[data-backup]").onclick = faiBackup;
-  $("[data-undo]").onclick = annullaModifica;
-  $("[data-redo]").onclick = ripetiModifica;
   $("[data-qx]")?.addEventListener("click",e=>{ e.preventDefault(); CERCA=""; cercaTipo="tutti"; disegna(); });
   const q = $("#qglob");
   q.oninput = ()=>{ CERCA = q.value; cercaTipo="tutti"; mostraRisultati(); };
@@ -1835,7 +1842,11 @@ function disegna(){
   if(GRAFICI.length) montaGrafici();
 }
 function testata(titolo, sotto, azioni){
-  return `<div class="tb"><h4>${titolo}</h4>${sotto?`<span class="sub">${sotto}</span>`:""}${azioni||""}</div>`;
+  return `<div class="tb"><h4>${titolo}</h4>${sotto?`<span class="sub">${sotto}</span>`:""}${azioni||""}
+    <span class="frecce psh">
+      <button class="fr-b" id="btUndo" data-undo title="Annulla l'ultima modifica" ${UNDO.length?"":"disabled"}>↶</button>
+      <button class="fr-b" id="btRedo" data-redo title="Ripristina la modifica annullata" ${REDO.length?"":"disabled"}>↷</button>
+    </span></div>`;
 }
 const schermo = html => { $("#mn").innerHTML = html; };
 addEventListener("hashchange", ()=>{ CERCA=""; disegna(); });
@@ -3291,25 +3302,40 @@ function scansiona(m, e){
     const pdf=await pdfDaPagine(imgs, true);
     const dato=await new Promise(ok=>{ const r=new FileReader(); r.onload=()=>ok(r.result); r.readAsDataURL(pdf); });
     const id=await mediaSalva(dato);
+    /* le pagine fotografate restano anche una per una: così l'allegato si vede
+       come le sue pagine e basta, non dentro il lettore PDF del telefono
+       (che ha la sua barra sopra, come un'anteprima di stampa). */
+    const pagine=[];
+    for(const d of pag) pagine.push(await mediaSalva(d));
     e.allegati=e.allegati||[];
-    e.allegati.push({id, nome:`scansione-${oggiISO()}.pdf`, tipo:"application/pdf"});
+    e.allegati.push({id, nome:`scansione-${oggiISO()}.pdf`, tipo:"application/pdf", pagine});
     chiudi(); salva(); disegna();
   };
   mostra();
 }
+/* come si vede un allegato dentro la pagina, senza aprire un'altra finestra:
+   se sono le pagine di una scansione, sono immagini pulite una sotto l'altra;
+   un'immagine qualsiasi si vede uguale; un PDF preso da fuori (non scansionato
+   qui) resta nell'iframe, con la barra del lettore tolta dove il browser lo
+   permette. */
+function vistaAllegato(a){
+  if(a.pagine && a.pagine.length)
+    return a.pagine.map(id=>`<img src="${img(id)}" style="max-width:100%;display:block;margin:0 auto 10px;border:1px solid var(--bordo)">`).join("");
+  if(a.tipo && a.tipo.startsWith("image/"))
+    return `<img src="${img(a.id)}" style="max-width:100%;max-height:520px;margin:0 auto;display:block">`;
+  if(a.tipo==="application/pdf")
+    return `<iframe src="${img(a.id)}#toolbar=0&navpanes=0&scrollbar=0" style="width:100%;height:60vh;border:1px solid var(--bordo);background:#fff"></iframe>`;
+  return `<div class="vuoto">Anteprima non disponibile per questo tipo di file: usa «Scarica».</div>`;
+}
 function vediAllegati(m,e){
   const {el}=modale({titolo:"Allegati",largo:true,corpo:
     (e.allegati||[]).map((a,i)=>`<div class="pn"><div class="pn-h"><span class="lb">${esc(a.nome)}</span>
-        <button class="bt sm psh" data-ap="${i}">Apri</button><button class="bt sm dan" data-ax="${i}">Togli</button></div>
-      ${a.tipo.startsWith("image/")?`<div class="pn-b"><img src="${img(a.id)}" style="max-height:340px;margin:0 auto"></div>`:""}</div>`).join("")
+        <button class="bt sm dan psh" data-ax="${i}">Togli</button></div>
+      <div class="pn-b" style="background:#fff;align-items:center">${vistaAllegato(a)}</div></div>`).join("")
       || '<div class="vuoto">Nessun allegato.</div>',
     azioni:[{testo:"Scansiona (PDF)",fn:()=>{ scansiona(m,e); }},
             {testo:"Aggiungi un allegato",fn:()=>{ aggiungiAllegato(m,e); }},
             {testo:"Chiudi",cls:"pri",destra:true,fn:()=>{}}]});
-  $$("[data-ap]",el).forEach(b=>b.onclick=()=>{
-    const a=e.allegati[+b.dataset.ap];
-    const w=window.open(); if(w) w.document.write(`<iframe src="${a.id&&img(a.id)}" style="position:fixed;inset:0;width:100%;height:100%;border:0"></iframe>`);
-  });
   $$("[data-ax]",el).forEach(b=>b.onclick=async ()=>{
     const a=e.allegati[+b.dataset.ax]; await mediaElimina(a.id);
     e.allegati.splice(+b.dataset.ax,1); salva(); el.remove(); disegna(); });
@@ -3901,7 +3927,7 @@ function nuovoVerbale(tipo,straord){
     segretarioId: chiHa("Segretario",oggiISO())[0]||"",
     meditazione:"",inno:"",preghieraApertura:"",preghieraChiusura:"",
     presenti: tipo==="comitato"?comitato(oggiISO()).map(i=>i.membroId):[],
-    ospiti:[], odg:[], decisioni:[], decisioniVoto:[], cronologia:[],
+    ospiti:[], odg:[], decisioni:[], decisioniVoto:[], cronologia:[], discussioni:[],
     letturaPrecedente:null, votazioni:[], elezioni:[],
     presentiApertura:null, presentiUscita:null,
     stato:"preparazione", firme:{dirigente:null,segretario:null},
@@ -4117,6 +4143,12 @@ function editorVerbale(v){
             :`<div class="vuoto">Nessuna decisione. Le decisioni si prendono <b>votando</b>: apri una votazione qui sopra e, quando la approvi, la decisione compare qui già scritta.</div>`}
             <div class="avv n" style="font-size:12.9px">Ogni decisione nasce da una votazione: il testo si può correggere, il voto no.</div>
           </div></div>
+          <div class="pn" style="flex:none"><div class="pn-h"><span class="lb">Discusso, senza decisione</span>
+            <span class="cp b psh">argomenti di cui si è parlato, senza votare</span></div>
+            <div class="pn-b"><div class="lista">${(v.discussioni||[]).map((t,i)=>
+              `<div class="el"><span class="n">${i+1}.</span><textarea data-ds="${i}" rows="2">${esc(t)}</textarea>
+                <button class="x" data-dsx="${i}">×</button></div>`).join("")}</div>
+              <button class="bt" data-dsadd>+ Aggiungi argomento</button></div></div>
          ${isRio?"":bloccoImpegni(v)}
          ${(isRio||v.elezioni.length)?bloccoElezioni(v):""}`}
       </div>
@@ -4158,6 +4190,10 @@ function editorVerbale(v){
   $$("[data-o]").forEach(t=>{ autoAlto(t); t.oninput=()=>{ v.odg[+t.dataset.o]=t.value; autoAlto(t); salva(); }; });
   $$("[data-d]").forEach(t=>{ autoAlto(t); t.oninput=()=>{ v.decisioni[+t.dataset.d]=t.value; autoAlto(t); salva(); }; });
   $$("[data-ox]").forEach(b=>b.onclick=()=>{ v.odg.splice(+b.dataset.ox,1); salva(); disegna(); });
+  $("[data-dsadd]")?.addEventListener("click",()=>{ v.discussioni=v.discussioni||[]; v.discussioni.push("");
+    salva(); disegna(); setTimeout(()=>$$("[data-ds]").pop()?.focus(),40); });
+  $$("[data-ds]").forEach(t=>{ autoAlto(t); t.oninput=()=>{ v.discussioni[+t.dataset.ds]=t.value; autoAlto(t); salva(); }; });
+  $$("[data-dsx]").forEach(b=>b.onclick=()=>{ v.discussioni.splice(+b.dataset.dsx,1); salva(); disegna(); });
   $$("[data-cx]").forEach(b=>b.onclick=()=>{ v.cronologia.splice(+b.dataset.cx,1); salva(); disegna(); });
   $("[data-leggi]")?.addEventListener("click",()=>leggiPrecedente(v,prec));
   $("[data-ante]")?.addEventListener("click",()=>modale({titolo:"Anteprima",largo:true,
@@ -4336,7 +4372,7 @@ function notaDecisione(v,i){
   modale({titolo:"Nota sulla decisione",corpo:
     `<p style="margin:0 0 6px">${esc(v.decisioni[i]||"")}</p>
      ${campo("Nota","__n",n,"area",'style="min-height:100px" placeholder="di che cosa si è discusso, perché ci è voluto tempo…"')}
-     <div class="avv n">Serve a chi rilegge il verbale per capire il contesto: <b>non compare</b> sul documento stampato o firmato.</div>`,
+     <div class="avv n">Compare anche sul verbale stampato, sotto la decisione e scritta più piccola — segnata come <b>nota</b>, così non si confonde con la decisione vera e propria.</div>`,
     azioni:[...(n?[{testo:"Togli la nota",cls:"dan",fn:()=>{
         allineaDecisioni(v); v.decisioniNote[i]=""; salva(); disegna(); }}]:[]),
       {testo:"Annulla",fn:()=>{}},
@@ -4501,10 +4537,16 @@ function letturaHTML(v){
   const rigaVoto = x => x ? `<div style="font-family:var(--sans);font-size:14.6px;color:var(--ink3);margin-top:2px">${
     eUnanime(x) ? "unanime" : x.opzioni.map(o=>esc(o.testo)+" "+o.voti).join(" · ")}${x.bianchi?" · bianchi "+x.bianchi:""}${x.nulli?" · nulli "+x.nulli:""}${
     x.astenuti?" · astenuti "+x.astenuti:""} — ${esc(modoNome(x.modo||"segreto"))}</div>` : "";
-  if(v.decisioni.length) p.push(`<span class="lb">Decisioni</span><div style="display:grid;grid-template-columns:1.6em 1fr;gap:6px 9px;margin-bottom:12px">${
+  /* se in «Decisioni prese → Prepara la lettura» hai già scelto che cosa dire di
+     questo verbale, questa lettura lo capisce da sola e lo fa vedere: separate
+     le decisioni da dire da quelle da saltare, senza doverlo rifare qui. */
+  const inPrep = (DB.letturaPrep?.verbaliIds||[]).includes(v.id);
+  const nascPrep = new Set(DB.letturaPrep?.nascoste||[]);
+  if(v.decisioni.length) p.push(`<span class="lb">Decisioni</span>${inPrep?'<span style="font-family:var(--sans);font-size:12.6px;color:var(--ink3)"> — dalla tua «Prepara la lettura»</span>':""}<div style="display:grid;grid-template-columns:1.6em 1fr;gap:6px 9px;margin-bottom:12px">${
     v.decisioni.map((t,i)=>{ const sc=(v.decisioniScadenza||[])[i];
+      const salta = inPrep && nascPrep.has(`${v.id}#${i}`);
       return `<span style="font-family:var(--mono);font-size:14.6px;color:var(--ink3);padding-top:5px">${i+1}<br><span style="font-size:11.2px">${esc((v.decisioniOra||[])[i]||"")}</span></span>
-      <span>${esc(t)}${rigaVoto((v.decisioniVoto||[])[i])}${sc&&sc.entro?`<div style="font-size:14.6px;color:var(--timbro)">Da fare entro il ${dataIT(sc.entro)}${sc.chi?" — "+esc(sc.chi):""}.</div>`:""}</span>`;}).join("")}</div>`);
+      <span style="${salta?"opacity:.4":""}">${inPrep?`<b style="font-family:var(--sans);font-size:11.2px;letter-spacing:.04em;text-transform:uppercase;color:${salta?"var(--ink3)":"var(--verde)"}">${salta?"si salta":"si dice"}</b><br>`:""}<span style="${salta?"text-decoration:line-through":""}">${esc(t)}</span>${rigaVoto((v.decisioniVoto||[])[i])}${sc&&sc.entro?`<div style="font-size:14.6px;color:var(--timbro)">Da fare entro il ${dataIT(sc.entro)}${sc.chi?" — "+esc(sc.chi):""}.</div>`:""}</span>`;}).join("")}</div>`);
   gruppiEsiti(v).forEach(([tit,l])=>p.push(`<span class="lb">${tit}</span><div style="display:grid;grid-template-columns:1.6em 1fr;gap:6px 9px;margin-bottom:12px">${
     l.map((x,i)=>`<span style="font-family:var(--mono);font-size:14.6px;color:var(--ink3);padding-top:5px">${i+1}</span>
       <span>${esc(x.oggetto||"Proposta")} — <i>${esc(x.esito)}</i>${rigaVoto(istantaneaVoto(x))}</span>`).join("")}</div>`));
@@ -4596,11 +4638,14 @@ function fogliaVerbale(v){
       ${v.odg.map((t,i)=>`<p><span class="n">${i+1}</span>${esc(t)}</p>`).join("")}</div>`:""}
     ${(v.elezioni||[]).length?bloccoElezioniStampa(v):""}
     ${v.decisioni.length?`<div class="db"><span class="ls">Decisioni</span>
-      ${v.decisioni.map((t,i)=>{ const sc=(v.decisioniScadenza||[])[i];
+      ${v.decisioni.map((t,i)=>{ const sc=(v.decisioniScadenza||[])[i], nt=(v.decisioniNote||[])[i];
         return `<div class="dc"><span class="n">${i+1}.${(v.decisioniOra||[])[i]?`<span class="ora">${esc(v.decisioniOra[i])}</span>`:""}</span>
         <div><p>${esc(t)}</p>${tabellaVoto((v.decisioniVoto||[])[i])}
         ${sc&&sc.entro?`<p class="scad${sc.chiusa?" ok":""}">Da fare entro il ${dataIT(sc.entro)}${sc.chi?` — ${esc(sc.chi)}`:""}${
-          sc.chiusa?` · assolto il ${dataIT(sc.chiusa.data)}`:""}.</p>`:""}</div></div>`;}).join("")}</div>`:""}
+          sc.chiusa?` · assolto il ${dataIT(sc.chiusa.data)}`:""}.</p>`:""}
+        ${nt?`<p class="nota-dec"><span class="et">Nota —</span> ${esc(nt)}</p>`:""}</div></div>`;}).join("")}</div>`:""}
+    ${(v.discussioni||[]).length?`<div class="db" style="margin-top:14px"><span class="ls">Discusso, senza decisione</span>
+      ${v.discussioni.map((t,i)=>`<div class="dc"><span class="n">${i+1}.</span><div><p style="font-style:italic">${esc(t)}</p></div></div>`).join("")}</div>`:""}
     ${(v.impegniChiusi||[]).length?`<div class="db" style="margin-top:14px"><span class="ls">Impegni verificati</span>
       ${v.impegniChiusi.map((z,i)=>`<div class="dc"><span class="n">${i+1}.${z.ora?`<span class="ora">${esc(z.ora)}</span>`:""}</span>
         <div><p>${esc(z.testo)}</p><p class="scad ok">Preso ${esc(z.da.toLowerCase())} del ${dataIT(z.quando)} — assolto.</p></div></div>`).join("")}</div>`:""}
@@ -6441,10 +6486,7 @@ function bloccoAllegatiLettera(e){
         <div class="pn-h"><span class="lb">${esc(a.nome)}</span>
           <a class="bt sm psh" href="${img(a.id)}" download="${esc(a.nome)}">Scarica</a>
           <button class="bt sm dan" data-lax="${i}">Togli</button></div>
-        <div class="pn-b" style="background:#fff;align-items:center">${
-          a.tipo&&a.tipo.startsWith("image/")?`<img src="${img(a.id)}" style="max-width:100%;max-height:520px;margin:0 auto">`
-          :a.tipo==="application/pdf"?`<iframe src="${img(a.id)}" style="width:100%;height:60vh;border:1px solid var(--bordo);background:#fff"></iframe>`
-          :`<div class="vuoto">Anteprima non disponibile per questo tipo di file: usa «Scarica».</div>`}</div></div>`).join("")
+        <div class="pn-b" style="background:#fff;align-items:center">${vistaAllegato(a)}</div></div>`).join("")
       :'<div class="vuoto">Nessun allegato. Con «+ Allegato» scegli un file o una foto già fatta; con «Scansiona» fotografi un foglio e diventa un unico PDF — anche per una lettera scritta qui, se l\'hai fatta altrove.</div>'}</div></div>`;
 }
 function fogliaLettera(l){
@@ -7307,7 +7349,7 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.1";
+const VERSIONE_APP="26.2";
 const AGGIORNATA_IL="22 settembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
