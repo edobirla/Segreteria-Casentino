@@ -416,7 +416,7 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 .foglio table.inv.sem tr.sub td{background:none}
 /* registro delle presenze: sabati in colonna, pallino pieno o vuoto */
 .foglio table.reg{font-size:.82em;table-layout:fixed}
-.foglio table.reg td,.foglio table.reg th{padding:2px 2px 3px;white-space:nowrap}
+.foglio table.reg td,.foglio table.reg th{padding:2px 2px 3px;white-space:nowrap;vertical-align:middle}
 .foglio table.reg th.n,.foglio table.reg td.n{text-align:center;font-family:var(--mono);font-size:.9em}
 .foglio table.reg th{font-size:.82em;letter-spacing:0}
 .foglio table.reg th.n b{display:block;font-weight:600}
@@ -556,6 +556,10 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
   #mn .pn{flex:none!important;margin-bottom:14px}
   #mn .pn:last-child{margin-bottom:0}
   #mn .pn-b{overflow:visible!important;max-height:none!important}
+  /* le liste che crescono (decisioni, votazioni, presenze…) su schermo stretto
+     restano dentro un riquadro con lo scorrimento suo, invece di allungare
+     tutta la pagina: con tante decisioni il verbale diventava interminabile. */
+  #mn .pn.gro .pn-b{overflow-y:auto!important;max-height:58vh!important}
   #mn .pn.gro,#mn .pn.gro.pres{min-height:0}
   .cn{padding:14px 16px;overflow-y:auto}
   /* barra in alto: titolo su una riga, pulsanti sotto in fila ordinata */
@@ -706,6 +710,24 @@ const ARCH = (()=>{
 let DB = null;
 const MEDIA = new Map();           // id -> data URL, tenuto in memoria
 let salvaTimer=null;
+/* ---- annulla/ripeti: una fotografia dell'archivio a ogni gruppo di modifiche
+   (lo stesso giro di 250ms con cui si salva), così annullare torna a com'era
+   prima di quel gruppo invece che tasto per tasto. */
+let UNDO=[], REDO=[], DB_ULTIMO=null;
+function aggiornaFrecce(){
+  const u=$("#btUndo"), r=$("#btRedo");
+  if(u) u.disabled=!UNDO.length; if(r) r.disabled=!REDO.length;
+}
+function annullaModifica(){
+  if(!UNDO.length) return;
+  REDO.push(DB_ULTIMO); DB_ULTIMO=UNDO.pop(); DB=JSON.parse(DB_ULTIMO);
+  ARCH.scriviDoc(DB); disegna();
+}
+function ripetiModifica(){
+  if(!REDO.length) return;
+  UNDO.push(DB_ULTIMO); DB_ULTIMO=REDO.pop(); DB=JSON.parse(DB_ULTIMO);
+  ARCH.scriviDoc(DB); disegna();
+}
 function salva(){
   /* la spia in fondo al menu si accende alla prima modifica e resta accesa
      finché non si fa il backup: senza finestre a tutto schermo dopo ogni tasto. */
@@ -716,6 +738,11 @@ function salva(){
   }
   clearTimeout(salvaTimer);
   salvaTimer = setTimeout(async ()=>{
+    const ora=JSON.stringify(DB);
+    if(DB_ULTIMO!==null && ora!==DB_ULTIMO){
+      UNDO.push(DB_ULTIMO); if(UNDO.length>40) UNDO.shift(); REDO.length=0;
+    }
+    DB_ULTIMO=ora; aggiornaFrecce();
     try{ await ARCH.scriviDoc(DB); }
     catch(e){ alert("Non sono riuscito a salvare: "+e.message+"\nFai subito un backup, per sicurezza."); }
   }, 250);
@@ -871,7 +898,7 @@ function decorrenzaIncarichi(dataRaduno){
 const VUOTI_VERBALE={straordinario:false, numero:null, iniziato:false, oraApertura:"", oraChiusura:"",
   presiedeId:"", dirigenteId:"", segretarioId:"", meditazione:"", inno:"",
   preghieraApertura:"", preghieraChiusura:"", presenti:[], ospiti:[], odg:[], decisioni:[],
-  decisioniVoto:[], decisioniVotoId:[], decisioniOra:[], decisioniScadenza:[], cronologia:[],
+  decisioniVoto:[], decisioniVotoId:[], decisioniOra:[], decisioniScadenza:[], decisioniNote:[], cronologia:[],
   letturaPrecedente:null, votazioni:[], elezioni:[], impegniChiusi:[], modifiche:[],
   presentiApertura:null, presentiUscita:null, stato:"preparazione", annullato:null,
   incarichiApplicati:false, decorrenza:null, correzione:false};
@@ -900,11 +927,20 @@ function normalizza(){
     telefonoChiesa:"", emailChiesa:"", daBackup:false, cartellaBackup:"",
     sogliaAssenze:5, sogliaOspiti:50, sogliaAssemblee:3};
   for(const k in imp) if(DB.impostazioni[k]===undefined) DB.impostazioni[k]=imp[k];
-  ["membri","incarichi","verbali","lettere","chiese","inventario","rapporti","sabati","ospitiNoti"]
+  ["membri","incarichi","verbali","lettere","chiese","inventario","rapporti","sabati","ospitiNoti","programmiExtra","presenzeExtra"]
     .forEach(k=>{ if(!Array.isArray(DB[k])) DB[k]=[]; });
+  /* preparazione della lettura in assemblea: quali verbali leggere e quali
+     decisioni saltare. Non è un dato "di chiesa", è solo un promemoria per chi legge. */
+  if(!DB.letturaPrep || typeof DB.letturaPrep!=="object") DB.letturaPrep={verbaliIds:[],nascoste:[]};
+  if(!Array.isArray(DB.letturaPrep.verbaliIds)) DB.letturaPrep.verbaliIds=[];
+  if(!Array.isArray(DB.letturaPrep.nascoste)) DB.letturaPrep.nascoste=[];
   DB.membri.forEach(m=>{ if(!m.id) m.id=uid(); riempi(m, VUOTI_MEMBRO);
     m.storico.forEach(e=>{ if(!e.id) e.id=uid(); riempi(e, VUOTI_EVENTO); }); });
   DB.lettere.forEach(l=>{ if(!l.id) l.id=uid(); riempi(l, VUOTI_LETTERA); });
+  /* programmi facoltativi oltre al sabato (venerdì, domenica…): aggiunti a mano con «+ Programma» */
+  DB.programmiExtra.forEach(p=>{ if(!p.id) p.id=uid(); if(!p.nome) p.nome=""; });
+  DB.presenzeExtra.forEach(r=>{ if(!r.id) r.id=uid();
+    if(!Array.isArray(r.membri)) r.membri=[]; if(!Array.isArray(r.osp)) r.osp=[]; if(r.note===undefined) r.note=""; });
   DB.rapporti.forEach(r=>{ if(!r.id) r.id=uid(); riempi(r, VUOTI_RAPPORTO);
     if(!r.manuali || typeof r.manuali!=="object") r.manuali={}; });
   DB.incarichi.forEach(i=>{ if(!i.id) i.id=uid(); if(i.al===undefined) i.al=null;
@@ -916,7 +952,7 @@ function normalizza(){
     if(!v.firme || typeof v.firme!=="object") v.firme={dirigente:null,segretario:null};
     if(v.anno===undefined && v.data) v.anno=+v.data.slice(0,4);
     if(!Array.isArray(v.ospiti)) v.ospiti=[];
-    ["decisioniVoto","decisioniVotoId","decisioniOra","decisioniScadenza"].forEach(k=>{
+    ["decisioniVoto","decisioniVotoId","decisioniOra","decisioniScadenza","decisioniNote"].forEach(k=>{
       if(!Array.isArray(v[k])) v[k]=[];
       const n=(v.decisioni||[]).length;
       while(v[k].length < n) v[k].push(null);
@@ -946,6 +982,8 @@ function normalizza(){
   DB.sabati.forEach(s=>{ s.f=s.f||{}; s.osp=s.osp||{}; s.anon=s.anon||{};
     if(s.escluso===undefined) s.escluso=false;
     if(s.motivo===undefined) s.motivo="";
+    if(s.santaCena===undefined) s.santaCena=false;
+    if(!Array.isArray(s.cena)) s.cena=[];
     ["preghiera","scuola","predica","pomeriggio"].forEach(k=>{
       if(!Array.isArray(s.f[k])) s.f[k]=[];
       if(!Array.isArray(s.osp[k])) s.osp[k]=[];
@@ -1770,6 +1808,10 @@ function disegna(){
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
         <input id="qglob" placeholder="Cerca" value="${esc(CERCA)}" autocomplete="off">
         ${CERCA?'<button class="qx" data-qx title="cancella">×</button>':""}</label>
+      <div style="display:flex;gap:6px;padding:0 10px 8px">
+        <button class="bt sm" id="btUndo" data-undo title="Annulla l'ultima modifica" style="flex:1" ${UNDO.length?"":"disabled"}>↶ Annulla</button>
+        <button class="bt sm" id="btRedo" data-redo title="Ripristina la modifica annullata" style="flex:1" ${REDO.length?"":"disabled"}>↷ Ripeti</button>
+      </div>
       ${menu}
       <div class="sb-f${DB.impostazioni.daBackup?" dabk":""}" id="sbf">
         <span id="bkStato">${DB.impostazioni.daBackup?"Modifiche da salvare":"Ultimo backup"}</span><br>
@@ -1778,6 +1820,8 @@ function disegna(){
     </aside><main class="mn" id="mn"></main>`;
   $$("[data-vai]").forEach(b=>b.onclick=()=>vai(b.dataset.vai));
   $("[data-backup]").onclick = faiBackup;
+  $("[data-undo]").onclick = annullaModifica;
+  $("[data-redo]").onclick = ripetiModifica;
   $("[data-qx]")?.addEventListener("click",e=>{ e.preventDefault(); CERCA=""; cercaTipo="tutti"; disegna(); });
   const q = $("#qglob");
   q.oninput = ()=>{ CERCA = q.value; cercaTipo="tutti"; mostraRisultati(); };
@@ -2417,7 +2461,7 @@ function apriBackup(){
           DB = d; MEDIA.clear();
           /* un backup fatto con una versione precedente non ha i campi aggiunti dopo:
              normalizza() li mette a posto prima che qualcuno provi a leggerli. */
-          ["membri","incarichi","verbali","lettere","chiese","inventario","rapporti","sabati","ospitiNoti"]
+          ["membri","incarichi","verbali","lettere","chiese","inventario","rapporti","sabati","ospitiNoti","programmiExtra","presenzeExtra"]
             .forEach(k=>{ if(!Array.isArray(DB[k])) DB[k]=[]; });
           if(!DB.impostazioni) DB.impostazioni={};
           normalizza();
@@ -2801,7 +2845,8 @@ VISTE.decisioni=()=>{
   if(q) lista=lista.filter(x=>(x.testo+" "+titoloVerbale(x.v)+" "+dataIT(x.v.data)).toLowerCase().includes(q));
   const conta=t=>tutteLeDecisioni(anno).filter(x=>t==="tutti"||x.v.tipo===t).length;
   schermo(testata("Decisioni prese", `${tutteLeDecisioni(anno).length} nel ${anno}`,
-    `<button class="bt pri psh" data-exp>Esporta il riepilogo</button>`) +
+    `<button class="bt psh" data-prep>Prepara la lettura${(DB.letturaPrep.verbaliIds||[]).length?` (${DB.letturaPrep.verbaliIds.length})`:""}</button>
+     <button class="bt pri" data-exp>Esporta il riepilogo</button>`) +
   `<div class="cn">
     ${filtro("qdec",decCerca,"Cerca in tutte le decisioni dell'anno…")}
     <div class="tab"><span class="lb">Anno</span>
@@ -2826,6 +2871,7 @@ VISTE.decisioni=()=>{
   $("#adec").onchange=e=>{ decAnno=+e.target.value; disegna(); };
   $$("[data-dt]").forEach(b=>b.onclick=()=>{ decTipo=b.dataset.dt; disegna(); });
   $$("[data-dv]").forEach(b=>b.onclick=()=>{ const v=verbale(b.dataset.dv); vai(TIPI[v.tipo].vista, v.id); });
+  $("[data-prep]").onclick=()=>preparaLettura();
   $("[data-exp]").onclick=()=>esporta({nome:`decisioni-${anno}`, titolo:`Decisioni ${anno}`,
     foglio:()=>fogliaDecisioni(anno,lista),
     righe:()=>{ const r=[["Data","Verbale","N.","Ora","Decisione","Votata","Entro il","Assolto"]];
@@ -2849,6 +2895,58 @@ function fogliaDecisioni(anno,lista){
           </div></div>`).join("")}</div>`).join("")}
     ${lista.length?"":'<p>Nessuna decisione registrata per quest\'anno.</p>'}
     ${piedeFoglio(`decisioni ${anno}`)}</div>`;
+}
+/* ---------- prepara la lettura in assemblea ----------
+   Quando c'è da leggere più di un verbale a un raduno di membri, si scelgono
+   prima quali, poi decisione per decisione che cosa dire e che cosa saltare.
+   È solo un promemoria per chi legge: non tocca i verbali. */
+function preparaLettura(){
+  const tutti=DB.verbali.slice().sort((a,b)=>b.data.localeCompare(a.data));
+  const sel=new Set(DB.letturaPrep.verbaliIds||[]);
+  const {el}=modale({titolo:"Scegli i verbali da leggere",largo:true,corpo:
+    `<div class="avv n">Spunta i verbali che devi leggere al raduno: dopo potrai scegliere, decisione per decisione, che cosa dire e che cosa saltare.</div>
+     <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">${tutti.map(v=>
+       `<label class="rw" style="border:1px solid var(--bordo);border-radius:6px;cursor:pointer">
+          <input type="checkbox" data-vs="${v.id}" ${sel.has(v.id)?"checked":""}>
+          <div class="g"><div class="t">${esc(titoloVerbale(v))}</div>
+            <div class="s">${dataBreve(v.data)}${v.annullato?" · ANNULLATO":""} · ${(v.decisioni||[]).length} decision${(v.decisioni||[]).length===1?"e":"i"}</div></div></label>`).join("")
+       || '<div class="vuoto">Nessun verbale in archivio.</div>'}</div>`,
+    azioni:[{testo:"Annulla",fn:()=>{}},{testo:"Apri la lettura",cls:"pri",destra:true,fn:(d)=>{
+      const scelti=$$("[data-vs]",d).filter(c=>c.checked).map(c=>c.dataset.vs);
+      if(!scelti.length){ alert("Scegli almeno un verbale."); return false; }
+      DB.letturaPrep.verbaliIds=scelti; salva(); vai("lettura"); }}]});
+}
+VISTE.lettura=()=>schemaLettura();
+function schemaLettura(){
+  const verbaliSel=(DB.letturaPrep.verbaliIds||[]).map(verbale).filter(Boolean)
+    .sort((a,b)=>a.data.localeCompare(b.data));
+  const nasc=new Set(DB.letturaPrep.nascoste||[]);
+  schermo(testata("Lettura in assemblea",
+    verbaliSel.length?`${verbaliSel.length} verbal${verbaliSel.length===1?"e":"i"} scelt${verbaliSel.length===1?"o":"i"}`:"nessun verbale scelto",
+    `<button class="bt psh" data-indietro>← Decisioni prese</button>
+     <button class="bt" data-scegli>Scegli i verbali</button>
+     <button class="bt pri" data-tutto>Mostra tutto</button>`) +
+  `<div class="cn">
+    ${verbaliSel.length?verbaliSel.map(v=>{
+      const decs=v.decisioni||[];
+      return `<div class="pn gro" style="flex:none"><div class="pn-h"><span class="lb">${esc(titoloVerbale(v))} — ${dataLunga(v.data)}</span></div>
+        <div class="pn-b t0">${decs.length?decs.map((t,i)=>{
+          const key=`${v.id}#${i}`, mostra=!nasc.has(key);
+          return `<div class="rw cl" data-tk="${esc(key)}">
+            <span class="cp${mostra?" v":""}">${mostra?"si dice":"si salta"}</span>
+            <div class="g"><div class="t" style="white-space:normal;font-size:16px;${mostra?"":"opacity:.4;text-decoration:line-through"}">${esc(t)}</div></div>
+          </div>`;}).join("")
+          :'<div class="vuoto">Nessuna decisione in questo verbale.</div>'}</div></div>`;
+    }).join("")
+    :'<div class="pn gro"><div class="pn-b"><div class="vuoto">Nessun verbale scelto. Tocca «Scegli i verbali» per preparare la lettura.</div></div></div>'}
+  </div>`);
+  $("[data-indietro]").onclick=()=>vai("decisioni");
+  $("[data-scegli]").onclick=()=>preparaLettura();
+  $("[data-tutto]").onclick=()=>{ DB.letturaPrep.nascoste=[]; salva(); disegna(); };
+  $$("[data-tk]").forEach(b=>b.onclick=()=>{ const key=b.dataset.tk;
+    const s=new Set(DB.letturaPrep.nascoste||[]);
+    if(s.has(key)) s.delete(key); else s.add(key);
+    DB.letturaPrep.nascoste=[...s]; salva(); disegna(); });
 }
 </script>
 
@@ -3807,7 +3905,7 @@ function nuovoVerbale(tipo,straord){
     letturaPrecedente:null, votazioni:[], elezioni:[],
     presentiApertura:null, presentiUscita:null,
     stato:"preparazione", firme:{dirigente:null,segretario:null},
-    decisioniVotoId:[], decisioniOra:[], decisioniScadenza:[], annullato:null,
+    decisioniVotoId:[], decisioniOra:[], decisioniScadenza:[], decisioniNote:[], annullato:null,
     incarichiApplicati:false, decorrenza:null, modifiche:[]};
   /* alla riorganizzazione la prima cosa che si vota è chi scrive e firma il verbale */
   if(tipo==="riorganizzazione"){
@@ -4005,12 +4103,15 @@ function editorVerbale(v){
             <span class="cp b psh">nascono dalle votazioni</span></div>
           <div class="pn-b">${v.decisioni.length?`<div class="lista">${v.decisioni.map((t,i)=>{
             const sc=(v.decisioniScadenza||[])[i];
+            const nt=(v.decisioniNote||[])[i];
             return `<div class="el"><span class="n">${i+1}.<span style="display:block;font-size:10.6px;color:var(--ink3)">${esc((v.decisioniOra||[])[i]||"")}</span></span>
               <div><textarea data-d="${i}" rows="2">${esc(t)}</textarea>
+                ${nt?`<div class="avv n" style="margin:4px 8px 0;font-size:12.6px">📝 ${esc(nt)}</div>`:""}
                 <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:2px 8px 0">
                   ${sc&&sc.entro?`<span class="cp ${sc.chiusa?"v":"o"}">${sc.chiusa?"fatta":"entro "+dataBreve(sc.entro)}</span>`:""}
                   ${sc&&sc.chi?`<span class="lb">${esc(sc.chi)}</span>`:""}
                   <button class="bt sm gh" data-sc="${i}">${sc&&sc.entro?"Cambia la scadenza":"+ Da fare entro il…"}</button>
+                  <button class="bt sm gh" data-nt="${i}">${nt?"Modifica la nota":"+ Nota"}</button>
                 </div></div>
               <span></span></div>`;}).join("")}</div>`
             :`<div class="vuoto">Nessuna decisione. Le decisioni si prendono <b>votando</b>: apri una votazione qui sopra e, quando la approvi, la decisione compare qui già scritta.</div>`}
@@ -4052,6 +4153,7 @@ function editorVerbale(v){
   $$("[data-osx]").forEach(b=>b.onclick=()=>{ v.ospiti.splice(+b.dataset.osx,1); salva(); disegna(); });
   $$("[data-osadd]").forEach(b=>b.onclick=()=>{ v.ospiti.push(conTitolo(b.dataset.osadd)); salva(); disegna(); });
   $$("[data-sc]").forEach(b=>b.onclick=()=>scadenzaDecisione(v,+b.dataset.sc));
+  $$("[data-nt]").forEach(b=>b.onclick=()=>notaDecisione(v,+b.dataset.nt));
   $("[data-scegliv]")?.addEventListener("click",()=>scegliVerbaleDaLeggere(v));
   $$("[data-o]").forEach(t=>{ autoAlto(t); t.oninput=()=>{ v.odg[+t.dataset.o]=t.value; autoAlto(t); salva(); }; });
   $$("[data-d]").forEach(t=>{ autoAlto(t); t.oninput=()=>{ v.decisioni[+t.dataset.d]=t.value; autoAlto(t); salva(); }; });
@@ -4223,6 +4325,24 @@ function scadenzaDecisione(v,i){
         if(!e){ alert("Serve la data."); return false; }
         allineaDecisioni(v);
         v.decisioniScadenza[i]={entro:e, chi:$('[data-c="__c"]',d).value.trim(), chiusa:sc.chiusa||null};
+        salva(); disegna(); }}]});
+}
+/* nota libera su una decisione: serve a chi rilegge per capire come si è arrivati
+   a quel testo (di che cosa si è discusso, perché c'è voluto tempo…). Resta
+   nell'app, non va sul documento firmato. */
+function notaDecisione(v,i){
+  allineaDecisioni(v);
+  const n=v.decisioniNote[i]||"";
+  modale({titolo:"Nota sulla decisione",corpo:
+    `<p style="margin:0 0 6px">${esc(v.decisioni[i]||"")}</p>
+     ${campo("Nota","__n",n,"area",'style="min-height:100px" placeholder="di che cosa si è discusso, perché ci è voluto tempo…"')}
+     <div class="avv n">Serve a chi rilegge il verbale per capire il contesto: <b>non compare</b> sul documento stampato o firmato.</div>`,
+    azioni:[...(n?[{testo:"Togli la nota",cls:"dan",fn:()=>{
+        allineaDecisioni(v); v.decisioniNote[i]=""; salva(); disegna(); }}]:[]),
+      {testo:"Annulla",fn:()=>{}},
+      {testo:"Salva",cls:"pri",destra:true,fn:(d)=>{
+        allineaDecisioni(v);
+        v.decisioniNote[i]=$('[data-c="__n"]',d).value.trim();
         salva(); disegna(); }}]});
 }
 function bloccoImpegni(v){
@@ -5065,7 +5185,7 @@ function chiediTesto(v,x,esito){
       x.esito=esito; x.ora=x.ora||oraOra(); x.testoScelto=t;
       scriviEsitoVoto(v,x,app,false,t); }}]});
 }
-const ARR_DEC=["decisioniVoto","decisioniVotoId","decisioniOra","decisioniScadenza"];
+const ARR_DEC=["decisioniVoto","decisioniVotoId","decisioniOra","decisioniScadenza","decisioniNote"];
 function allineaDecisioni(v){
   ARR_DEC.forEach(k=>{ v[k]=v[k]||[];
     while(v[k].length < v.decisioni.length) v[k].push(null);
@@ -5091,6 +5211,7 @@ function scriviEsitoVoto(v,x,approvata,zitto,testo){
       v.decisioniVotoId.push(x.id);
       v.decisioniOra.push(x.ora||oraOra());
       v.decisioniScadenza.push(null);
+      v.decisioniNote.push("");
     }
     x.decisioneFatta=true;
   }
@@ -5193,7 +5314,7 @@ const fasciaEta = e => (e===null||e===undefined) ? "i21" : (FASCE.find(f=>e>=f[2
 const MOTIVI_SABATO=["Conferenza","Raduno di campo","Nessun programma in chiesa","Programma fuori sede","Altro"];
 const sabatoNormale = s => !s.escluso;
 function nuovoSabato(data){
-  const s={id:uid(),data,f:{},osp:{},anon:{},ore:{},note:"",escluso:false,motivo:""};
+  const s={id:uid(),data,f:{},osp:{},anon:{},ore:{},note:"",escluso:false,motivo:"",santaCena:false,cena:[]};
   FUNZIONI.forEach(([k])=>{ s.f[k]=[]; s.osp[k]=[]; s.anon[k]=fasceVuote(); s.ore[k]={}; });
   DB.sabati.push(s); ordinaSabati(); salva(); return s;
 }
@@ -5456,7 +5577,10 @@ VISTE.presenze=(arg)=>{
   ordinaSabati();
   if(arg){ sabData=arg; sabModo="segna"; }
   if(!sabData || (!sabatoDi(sabData) && sabModo==="elenco")) sabData = (DB.sabati[0]||{}).data || sabatoScorso();
-  return sabModo==="segna" ? segnaSabato() : riepilogoPresenze();
+  if(sabModo==="segna") return segnaSabato();
+  if(sabModo==="extra") return elencoProgrammiExtra();
+  if(sabModo==="extra-segna") return segnaProgrammaExtra();
+  return riepilogoPresenze();
 };
 /* ---- riepilogo: statistiche, grafico e il dettaglio di ogni sabato ---- */
 function riepilogoPresenze(){
@@ -5479,6 +5603,7 @@ function riepilogoPresenze(){
   schermo(testata("Presenze del sabato",
     `${validi.length} sabat${validi.length===1?"o":"i"} nel ${anno}${elenco.length>validi.length?` · ${elenco.length-validi.length} non contat${elenco.length-validi.length===1?"o":"i"}`:""}`,
     `<button class="bt psh" data-esp>Esporta il registro</button>
+     <button class="bt" data-extra>Altri programmi${(DB.programmiExtra||[]).length?` (${DB.programmiExtra.length})`:""}</button>
      <button class="bt" data-nuovo>+ Sabato</button>
      <button class="bt pri" data-oggi>${giaFatto?"Apri il sabato "+dataBreve(oggi):"Segna il sabato "+dataBreve(oggi)}</button>`) +
   `<div class="cn">
@@ -5521,6 +5646,7 @@ function riepilogoPresenze(){
     </div>
   </div>`);
   $("[data-esp]").onclick=()=>esportaPresenze();
+  $("[data-extra]").onclick=()=>{ sabModo="extra"; disegna(); };
   $("[data-nuovo]").onclick=()=>chiediSabato();
   $("[data-oggi]").onclick=()=>{ if(!sabatoDi(oggi)) nuovoSabato(oggi);
     sabData=oggi; sabFunz="preghiera"; sabModo="segna"; disegna(); };
@@ -5533,6 +5659,110 @@ function riepilogoPresenze(){
     `Cancello le presenze del ${dataIT(s.data)}?`,()=>{
       DB.sabati=DB.sabati.filter(x=>x.id!==s.id); sabData=null; salva(); disegna(); }));
   $$("[data-vm]").forEach(b=>b.onclick=()=>vai("membri",b.dataset.vm));
+}
+/* ---- programmi facoltativi oltre al sabato: venerdì, domenica, mercoledì…
+   Si aggiungono a mano con «+ Programma», non ci sono di default e non
+   entrano nelle statistiche del sabato né nei rapporti al Campo. ---- */
+const programmaExtra = id => (DB.programmiExtra||[]).find(p=>p.id===id)||null;
+const occorrenzeProgramma = pid => (DB.presenzeExtra||[])
+  .filter(r=>r.programmaId===pid).sort((a,b)=>b.data.localeCompare(a.data));
+const occorrenzaDi = (pid,data) => (DB.presenzeExtra||[]).find(r=>r.programmaId===pid&&r.data===data)||null;
+function nuovaOccorrenza(pid,data){
+  let r=occorrenzaDi(pid,data);
+  if(!r){ r={id:uid(),programmaId:pid,data,membri:[],osp:[],note:""}; DB.presenzeExtra.push(r); salva(); }
+  return r;
+}
+function nuovoProgrammaExtra(){
+  modale({titolo:"Nuovo programma",corpo:
+    campo("Nome","__n","",'text','placeholder="es. Culto del venerdì sera, Riunione di preghiera del mercoledì"')+
+    `<div class="avv n">Serve per segnare le presenze anche in occasioni diverse dal sabato: non tocca le statistiche del sabato né i rapporti al Campo.</div>`,
+    azioni:[{testo:"Annulla",fn:()=>{}},{testo:"Aggiungi",cls:"pri",destra:true,fn:(d)=>{
+      const n=$('[data-c="__n"]',d).value.trim();
+      if(!n){ alert("Serve un nome."); return false; }
+      DB.programmiExtra.push({id:uid(),nome:n}); salva(); disegna(); }}]});
+}
+function chiediDataExtra(pid){
+  modale({titolo:"Quale data",corpo:campo("Data","__d",oggiISO(),"date"),
+    azioni:[{testo:"Annulla",fn:()=>{}},{testo:"Registra",cls:"pri",destra:true,fn:(d)=>{
+      const data=$('[data-c="__d"]',d).value;
+      if(!data){ alert("Serve la data."); return false; }
+      nuovaOccorrenza(pid,data); extraProgId=pid; extraData=data; sabModo="extra-segna"; disegna(); }}]});
+}
+let extraProgId=null, extraData=null;
+function elencoProgrammiExtra(){
+  const progs=(DB.programmiExtra||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome,"it"));
+  schermo(testata("Altri programmi","presenze fuori dal sabato — facoltativo",
+    `<button class="bt psh" data-indietro>← Presenze del sabato</button>
+     <button class="bt pri" data-nuovoprog>+ Programma</button>`) +
+  `<div class="cn">
+    ${progs.length?progs.map(p=>{
+      const occ=occorrenzeProgramma(p.id);
+      return `<div class="pn gro" style="flex:none"><div class="pn-h"><span class="lb">${esc(p.nome)}</span>
+        <span class="cp">${occ.length} registrazion${occ.length===1?"e":"i"}</span>
+        <button class="bt sm psh" data-regprog="${p.id}">+ Registra una data</button>
+        <button class="bt sm dan" data-delprog="${p.id}">Elimina</button></div>
+        <div class="pn-b t0">${occ.length?occ.map(r=>
+          `<div class="rw cl" data-occ="${p.id}|${r.data}"><div class="g"><div class="t">${dataLunga(r.data)}</div>
+            <div class="s">${r.membri.length+r.osp.length} present${r.membri.length+r.osp.length===1?"e":"i"}${r.note?" · "+esc(r.note):""}</div></div></div>`).join("")
+          :'<div class="vuoto">Nessuna data registrata.</div>'}</div></div>`;
+    }).join("")
+    :'<div class="pn gro"><div class="pn-b"><div class="vuoto">Nessun programma aggiunto. Con «+ Programma» puoi tener traccia delle presenze anche al venerdì, alla domenica, al mercoledì… — non tocca le statistiche del sabato.</div></div></div>'}
+  </div>`);
+  $("[data-indietro]").onclick=()=>{ sabModo="elenco"; disegna(); };
+  $("[data-nuovoprog]").onclick=()=>nuovoProgrammaExtra();
+  $$("[data-delprog]").forEach(b=>b.onclick=()=>conferma(
+    "Elimino il programma e tutte le sue registrazioni di presenza?",()=>{
+      const pid=b.dataset.delprog;
+      DB.programmiExtra=DB.programmiExtra.filter(p=>p.id!==pid);
+      DB.presenzeExtra=(DB.presenzeExtra||[]).filter(r=>r.programmaId!==pid);
+      salva(); disegna(); }));
+  $$("[data-regprog]").forEach(b=>b.onclick=()=>chiediDataExtra(b.dataset.regprog));
+  $$("[data-occ]").forEach(b=>b.onclick=()=>{ const [pid,data]=b.dataset.occ.split("|");
+    extraProgId=pid; extraData=data; sabModo="extra-segna"; disegna(); });
+}
+function segnaProgrammaExtra(){
+  const p=programmaExtra(extraProgId), r=occorrenzaDi(extraProgId,extraData);
+  if(!p||!r){ sabModo="extra"; return elencoProgrammiExtra(); }
+  const L=attivi().sort(perNome);
+  const q=sabCerca.trim().toLowerCase();
+  const vis=q?L.filter(m=>nomeMembro(m).toLowerCase().includes(q)):L;
+  const noti=(DB.ospitiNoti||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome,"it"));
+  schermo(testata(p.nome, `${dataLunga(r.data)} — ${r.membri.length+r.osp.length} presenti`,
+    `<button class="bt psh" data-indietro>← ${esc(p.nome)}</button>`) +
+  `<div class="cn"><div class="cols" style="grid-template-columns:1.5fr 1fr;flex:1">
+    <div class="pn gro pres"><div class="pn-h"><span class="lb">Membri</span>
+      <span class="cp v">${r.membri.length} di ${L.length}</span>
+      ${conX(`<input class="i psh" id="qsab" placeholder="Cerca un nome…" value="${esc(sabCerca)}" autocomplete="off"
+        style="min-width:110px;padding:4px 8px;font-size:13.4px">`, sabCerca, "flex:0 1 200px")}
+      <button class="bt sm" data-etutti>Tutti</button><button class="bt sm" data-enessuno>Nessuno</button></div>
+      <div class="pn-b t0">${vis.length?`<div class="pgrid">${vis.map(m=>
+        `<div class="pchip ${r.membri.includes(m.id)?"si":"no"}">
+          <div style="flex:1;min-width:0"><div class="nm">${esc(nomeMembro(m))}</div></div>
+          <button class="tg ${r.membri.includes(m.id)?"on":""}" data-ep="${m.id}"></button></div>`).join("")}</div>`
+        :'<div class="vuoto">Nessun nome trovato.</div>'}</div></div>
+    <div>
+      <div class="pn" style="flex:none"><div class="pn-h"><span class="lb">Ospiti</span>
+        <span class="cp o">${r.osp.length}</span>
+        <button class="bt sm psh" data-eospadd>+ Ospite con nome</button></div>
+        <div class="pn-b t0">${noti.length?`<div class="pgrid">${noti.map(o=>
+          `<div class="pchip ${r.osp.includes(o.id)?"si":"no"}">
+            <div style="flex:1;min-width:0"><div class="nm">${esc(o.nome)}</div></div>
+            <button class="tg ${r.osp.includes(o.id)?"on":""}" data-eo="${o.id}"></button></div>`).join("")}</div>`
+          :'<div class="vuoto">Nessun ospite in elenco. Con «+ Ospite con nome» il nome resta e i giri dopo basta spuntarlo.</div>'}</div></div>
+      <div class="pn" style="flex:none"><div class="pn-b" style="flex:none">${campo("Nota","note",r.note||"","text")}</div></div>
+    </div>
+  </div></div>`);
+  $("[data-indietro]").onclick=()=>{ sabModo="extra"; disegna(); };
+  legaCampi($(".cn"), r);
+  $$("[data-ep]").forEach(b=>b.onclick=()=>{ const id=b.dataset.ep, i=r.membri.indexOf(id);
+    if(i<0) r.membri.push(id); else r.membri.splice(i,1); salva(); disegna(); });
+  $$("[data-eo]").forEach(b=>b.onclick=()=>{ const id=b.dataset.eo, i=r.osp.indexOf(id);
+    if(i<0) r.osp.push(id); else r.osp.splice(i,1); salva(); disegna(); });
+  $("[data-etutti]").onclick=()=>{ r.membri=[...new Set([...r.membri,...vis.map(m=>m.id)])]; salva(); disegna(); };
+  $("[data-enessuno]").onclick=()=>{ const via=new Set(vis.map(m=>m.id));
+    r.membri=r.membri.filter(id=>!via.has(id)); salva(); disegna(); };
+  $("[data-eospadd]").onclick=()=>nuovoOspite(o=>{ r.osp.push(o.id); salva(); disegna(); });
+  collegaFiltro("qsab",t=>{ sabCerca=t; });
 }
 /* il dettaglio di un sabato: un nome per riga e una colonna per funzione.
    Ripetere gli stessi venti nomi quattro volte non si leggeva; così si vede
@@ -5650,7 +5880,20 @@ function segnaSabato(){
             <tr class="tt"><td>Il momento più pieno</td><td style="white-space:nowrap">${piccoSabato(s).tot} · ${esc(piccoSabato(s).nome.toLowerCase())}</td></tr>
             <tr><td>Membri al mattino</td><td style="white-space:nowrap">${presentiSabato(s).length} di ${L.length}</td></tr>
           </table></div>
-          <div class="pn-b" style="flex:none">${campo("Nota del sabato","note",s.note||"","text",'placeholder="Santa Cena, visita del pastore…"')}</div></div>
+          <div class="pn-b" style="flex:none">${campo("Nota del sabato","note",s.note||"","text",'placeholder="visita del pastore…"')}
+            <label style="display:flex;align-items:center;gap:9px;font-size:14.6px">
+              <input type="checkbox" data-c="santaCena" ${s.santaCena?"checked":""}> C'è la Santa Cena, oggi</label>
+          </div></div>
+        ${s.santaCena?(()=>{ const pres=presentiSabato(s).map(membro).filter(Boolean).sort(perNome);
+          const cena=new Set(s.cena||[]);
+          return `<div class="pn gro"><div class="pn-h"><span class="lb">Chi ha partecipato alla Santa Cena</span>
+            <span class="cp v">${cena.size} di ${pres.length}</span>
+            <button class="bt sm" data-ctutti>Tutti</button><button class="bt sm" data-cnessuno>Nessuno</button></div>
+          <div class="pn-b t0">${pres.length?`<div class="pgrid">${pres.map(m=>
+            `<div class="pchip ${cena.has(m.id)?"si":"no"}">
+              <div style="flex:1;min-width:0"><div class="nm">${esc(nomeMembro(m))}</div></div>
+              <button class="tg ${cena.has(m.id)?"on":""}" data-cn="${m.id}"></button></div>`).join("")}</div>`
+            :'<div class="vuoto">Prima segna chi è presente al mattino: la Santa Cena si spunta fra loro.</div>'}</div></div>`; })():""}
       </div>
     </div>`}`}
   </div>`);
@@ -5663,6 +5906,7 @@ function segnaSabato(){
   $("[data-crea]")?.addEventListener("click",()=>{ nuovoSabato(sabData); disegna(); });
   if(!s) return;
   legaCampi($(".cn"), s);
+  $('[data-c="santaCena"]')?.addEventListener("change",()=>disegna());
   $("#tipoSab").onchange=e=>{ s.motivo=e.target.value; s.escluso=!!e.target.value; salva(); disegna(); };
   if(s.escluso) return;
   $$("[data-fz]").forEach(b=>b.onclick=()=>{ sabFunz=b.dataset.fz; disegna(); });
@@ -5694,6 +5938,11 @@ function segnaSabato(){
     s.ore=s.ore||{}; s.ore[sabFunz]={...((s.ore||{})[k]||{})}; salva(); disegna(); });
   $("[data-ospadd]").onclick=()=>nuovoOspite(o=>{
     (s.osp[sabFunz]=s.osp[sabFunz]||[]).push(o.id); salva(); disegna(); });
+  $$("[data-cn]").forEach(b=>b.onclick=()=>{ const id=b.dataset.cn, l=s.cena=s.cena||[];
+    const i=l.indexOf(id); if(i<0) l.push(id); else l.splice(i,1); salva(); disegna(); });
+  $("[data-ctutti]")?.addEventListener("click",()=>{
+    s.cena=presentiSabato(s).slice(); salva(); disegna(); });
+  $("[data-cnessuno]")?.addEventListener("click",()=>{ s.cena=[]; salva(); disegna(); });
 }
 /* un ospite si aggiunge in due tocchi, mentre la gente entra: nome ed età all'incirca.
    L'anno di nascita si ricava dall'età, così l'anno dopo la fascia si aggiorna da sola. */
@@ -6147,15 +6396,15 @@ VISTE.lettere=(arg)=>{
       <div><div class="pn gro">
         ${l?`<div class="pn-h"><span class="lb">n. ${l.numero} del ${l.anno} · ${esc(LINGUE[l.lingua]||l.lingua)}${l.origine==="ricevuta"?" · ricevuta":""}</span>
           <button class="bt sm psh" data-mod>Modifica</button>
-          <button class="bt sm" data-all>${(l.allegati||[]).length?`${l.allegati.length} allegat${l.allegati.length>1?"i":"o"}`:"Scansiona / allega"}</button>
           ${l.membroId?`<button class="bt sm" data-vaim="${l.membroId}">Scheda</button>`:""}
           ${l.origine==="ricevuta"?"":`<button class="bt sm" data-exp>Esporta</button>`}
           <button class="bt sm dan" data-el>Elimina</button></div>
           <div class="pn-b" style="background:#fff;align-items:center">
             <div style="width:min(760px,100%)">${l.origine==="ricevuta"
-              ?`<div class="avv n">Lettera ricevuta dall'esterno: non ha una carta intestata da stampare, ma può avere una scansione allegata (tocca «Scansiona / allega»).</div>
+              ?`<div class="avv n">Lettera ricevuta dall'esterno: non ha una carta intestata da stampare. Tieni qui sotto la foto o la scansione del foglio.</div>
                 ${l.corpo?`<div class="pn" style="margin-top:10px"><div class="pn-h"><span class="lb">Testo / note</span></div><div class="pn-b">${esc(l.corpo).replace(/\n/g,"<br>")}</div></div>`:""}`
-              :fogliaLettera(l)}</div></div>`
+              :fogliaLettera(l)}
+              ${bloccoAllegatiLettera(l)}</div></div>`
           :'<div class="vuoto">Nessuna lettera selezionata.</div>'}
       </div></div>
     </div>
@@ -6168,14 +6417,36 @@ VISTE.lettere=(arg)=>{
   $("[data-nuova]").onclick=nuovaLettera;
   if(l){
     $("[data-mod]").onclick=()=>modificaLettera(l);
-    $("[data-all]").onclick=()=>vediAllegati(null,l);
     $("[data-exp]")?.addEventListener("click",()=>esporta({nome:`lettera-${l.numero}-${l.anno}`,
       titolo:`Lettera n. ${l.numero} del ${l.anno}${l.oggetto?" — "+l.oggetto:""}`, foglio:()=>fogliaLettera(l)}));
     $("[data-vaim]")?.addEventListener("click",()=>vai("membri",l.membroId));
     $("[data-el]").onclick=()=>conferma("Elimini questa lettera dall'archivio?",()=>{
       DB.lettere=DB.lettere.filter(x=>x.id!==l.id); letSel=null; salva(); disegna(); });
+    $("[data-ladd]")?.addEventListener("click",()=>aggiungiAllegato(null,l));
+    $("[data-lscan]")?.addEventListener("click",()=>scansiona(null,l));
+    $$("[data-lax]").forEach(b=>b.onclick=async ()=>{
+      const a=l.allegati[+b.dataset.lax]; await mediaElimina(a.id);
+      l.allegati.splice(+b.dataset.lax,1); salva(); disegna(); });
   }
 };
+/* l'allegato si vede subito nel pannello, non dietro un'altra finestra: su iPad,
+   installata come app, «apri in una finestra nuova» spesso non apre niente. */
+function bloccoAllegatiLettera(e){
+  const al=e.allegati||[];
+  return `<div class="pn" style="margin-top:10px"><div class="pn-h"><span class="lb">Allegati</span>
+      <span class="cp${al.length?" v":""}">${al.length}</span>
+      <button class="bt sm psh" data-ladd>+ Allegato</button>
+      <button class="bt sm" data-lscan>Scansiona (PDF)</button></div>
+    <div class="pn-b">${al.length?al.map((a,i)=>`<div class="pn" style="margin:0">
+        <div class="pn-h"><span class="lb">${esc(a.nome)}</span>
+          <a class="bt sm psh" href="${img(a.id)}" download="${esc(a.nome)}">Scarica</a>
+          <button class="bt sm dan" data-lax="${i}">Togli</button></div>
+        <div class="pn-b" style="background:#fff;align-items:center">${
+          a.tipo&&a.tipo.startsWith("image/")?`<img src="${img(a.id)}" style="max-width:100%;max-height:520px;margin:0 auto">`
+          :a.tipo==="application/pdf"?`<iframe src="${img(a.id)}" style="width:100%;height:60vh;border:1px solid var(--bordo);background:#fff"></iframe>`
+          :`<div class="vuoto">Anteprima non disponibile per questo tipo di file: usa «Scarica».</div>`}</div></div>`).join("")
+      :'<div class="vuoto">Nessun allegato. Con «+ Allegato» scegli un file o una foto già fatta; con «Scansiona» fotografi un foglio e diventa un unico PDF — anche per una lettera scritta qui, se l\'hai fatta altrove.</div>'}</div></div>`;
+}
 function fogliaLettera(l){
   const I=DB.impostazioni, f=membro(l.firmatarioId);
   const car=f?(caricheDi(f.id)||["Segretario"])[0]:"Segretario";
@@ -7036,8 +7307,8 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26";
-const AGGIORNATA_IL="6 settembre 2026";
+const VERSIONE_APP="26.1";
+const AGGIORNATA_IL="22 settembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
@@ -7210,6 +7481,7 @@ VISTE.impostazioni=async ()=>{
     normalizza();
     if(!salvato) await ARCH.scriviDoc(DB);
   }catch(e){ DB=semi(); normalizza(); console.warn("Archivio non disponibile, dati di prova in memoria:",e); }
+  DB_ULTIMO=JSON.stringify(DB);
   if(!location.hash) location.hash="#/dashboard";
   disegna();
   console.log("Segreteria Casentino pronta. Scrivi autotest() per il controllo delle regole.");
