@@ -79,11 +79,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 .tb{display:flex;align-items:center;gap:11px;padding:14px 22px;border-bottom:1px solid var(--bordo);flex-wrap:wrap;flex:none;min-width:0;background:var(--sup);padding-top:calc(14px + env(safe-area-inset-top))}
 .tb h4{font-family:var(--serif);font-size:23.5px;font-weight:600;margin:0;letter-spacing:-.012em}
 .tb .sub{font-family:var(--mono);font-size:11.2px;letter-spacing:.07em;color:var(--ink3);text-transform:uppercase}
-.frecce{display:flex;gap:6px;flex:none}
-.fr-b{width:32px;height:32px;flex:none;border-radius:50%;border:1px solid var(--bordo);background:var(--sup);
-  display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;cursor:pointer;color:var(--ink)}
-.fr-b:hover{background:var(--sup2)}
-.fr-b[disabled]{opacity:.35;pointer-events:none}
+.frecce{display:flex;gap:2px;padding:0 10px 8px}
+.fr-b{flex:none;width:30px;height:30px;border-radius:7px;border:0;background:none;padding:0;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink3)}
+.fr-b svg{width:19px;height:19px}
+.fr-b:hover{background:var(--sup2);color:var(--ink)}
+.fr-b[disabled]{opacity:.32;pointer-events:none}
 .cn{padding:18px 22px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:15px;flex:1;min-width:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
 
 .bt{border:1px solid var(--bordo2);background:var(--sup);border-radius:6px;padding:7px 12px;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer;min-height:34px}
@@ -912,7 +913,7 @@ const VUOTI_VERBALE={straordinario:false, numero:null, iniziato:false, oraApertu
   presiedeId:"", dirigenteId:"", segretarioId:"", meditazione:"", inno:"",
   preghieraApertura:"", preghieraChiusura:"", presenti:[], ospiti:[], odg:[], decisioni:[],
   decisioniVoto:[], decisioniVotoId:[], decisioniOra:[], decisioniScadenza:[], decisioniNote:[], cronologia:[],
-  discussioni:[], letturaPrecedente:null, votazioni:[], elezioni:[], impegniChiusi:[], modifiche:[],
+  discussioni:[], letturaPrecedente:null, lettureAperture:[], votazioni:[], elezioni:[], impegniChiusi:[], modifiche:[],
   presentiApertura:null, presentiUscita:null, stato:"preparazione", annullato:null,
   incarichiApplicati:false, decorrenza:null, correzione:false};
 const VUOTI_MEMBRO={cognome:"", nome:"", sesso:"M", nato:"", cittadinanza:"", telefono:"", email:"",
@@ -965,6 +966,10 @@ function normalizza(){
     if(!v.firme || typeof v.firme!=="object") v.firme={dirigente:null,segretario:null};
     if(v.anno===undefined && v.data) v.anno=+v.data.slice(0,4);
     if(!Array.isArray(v.ospiti)) v.ospiti=[];
+    /* prima si poteva registrare una sola lettura del verbale precedente: diventa
+       il primo elemento dell'elenco, che adesso può averne più d'uno. */
+    if((!v.lettureAperture || !v.lettureAperture.length) && v.letturaPrecedente)
+      v.lettureAperture=[v.letturaPrecedente];
     ["decisioniVoto","decisioniVotoId","decisioniOra","decisioniScadenza","decisioniNote"].forEach(k=>{
       if(!Array.isArray(v[k])) v[k]=[];
       const n=(v.decisioni||[]).length;
@@ -1821,6 +1826,14 @@ function disegna(){
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
         <input id="qglob" placeholder="Cerca" value="${esc(CERCA)}" autocomplete="off">
         ${CERCA?'<button class="qx" data-qx title="cancella">×</button>':""}</label>
+      <div class="frecce">
+        <button class="fr-b" id="btUndo" data-undo title="Annulla l'ultima modifica" ${UNDO.length?"":"disabled"}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+        </button>
+        <button class="fr-b" id="btRedo" data-redo title="Ripristina la modifica annullata" ${REDO.length?"":"disabled"}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
+        </button>
+      </div>
       ${menu}
       <div class="sb-f${DB.impostazioni.daBackup?" dabk":""}" id="sbf">
         <span id="bkStato">${DB.impostazioni.daBackup?"Modifiche da salvare":"Ultimo backup"}</span><br>
@@ -1842,11 +1855,7 @@ function disegna(){
   if(GRAFICI.length) montaGrafici();
 }
 function testata(titolo, sotto, azioni){
-  return `<div class="tb"><h4>${titolo}</h4>${sotto?`<span class="sub">${sotto}</span>`:""}${azioni||""}
-    <span class="frecce psh">
-      <button class="fr-b" id="btUndo" data-undo title="Annulla l'ultima modifica" ${UNDO.length?"":"disabled"}>↶</button>
-      <button class="fr-b" id="btRedo" data-redo title="Ripristina la modifica annullata" ${REDO.length?"":"disabled"}>↷</button>
-    </span></div>`;
+  return `<div class="tb"><h4>${titolo}</h4>${sotto?`<span class="sub">${sotto}</span>`:""}${azioni||""}</div>`;
 }
 const schermo = html => { $("#mn").innerHTML = html; };
 addEventListener("hashchange", ()=>{ CERCA=""; disegna(); });
@@ -3226,6 +3235,15 @@ function collegaScheda(m){
 
 <script>
 /* ---------- eventi dello storico ---------- */
+/* chi esce dalla chiesa mentre un verbale è ancora «in preparazione» non deve
+   restare fra i presenti proposti: lì la lista è solo una bozza, non ancora la
+   riunione vera. I verbali già iniziati o chiusi restano com'erano: sono storia. */
+function togliDaiVerbaliInPreparazione(membroId){
+  DB.verbali.forEach(v=>{
+    if(v.stato==="preparazione" && (v.presenti||[]).includes(membroId))
+      v.presenti=v.presenti.filter(id=>id!==membroId);
+  });
+}
 function modificaEvento(m, e){
   const nuovo=!e;
   if(nuovo) e={id:uid(),tipo:"battesimo",data:oggiISO(),officiante:"",luogo:"",chiesa:"",note:"",letteraId:null,allegati:[]};
@@ -3237,7 +3255,9 @@ function modificaEvento(m, e){
      ${campo("Chiesa (di provenienza o di destinazione)","chiesa",c.chiesa)}
      ${campo("Note","note",c.note,"area")}`,
     azioni:[{testo:"Annulla",fn:()=>{}},{testo:"Salva",cls:"pri",destra:true,fn:()=>{
-      Object.assign(e,c); if(nuovo){ m.storico=m.storico||[]; m.storico.push(e); } salva(); disegna(); }}]});
+      Object.assign(e,c); if(nuovo){ m.storico=m.storico||[]; m.storico.push(e); }
+      if(e.tipo in USCITE) togliDaiVerbaliInPreparazione(m.id);
+      salva(); disegna(); }}]});
   legaCampi(el,c);
 }
 /* foto=true: sull'iPad apre direttamente la fotocamera, per fotografare un foglio
@@ -3372,6 +3392,7 @@ function registraMovimento(idPre){
       const evt={id:uid(),tipo,data,officiante:"",luogo:"",chiesa:chiesa?chiesa.nome:"",
         note:$('[data-c="__n"]',d).value,letteraId:null,allegati:[]};
       m.storico=m.storico||[]; m.storico.push(evt);
+      togliDaiVerbaliInPreparazione(mid);
       const persi = DB.incarichi.filter(i=>i.membroId===mid && !i.al && i.anno===annoCorrente()).map(i=>i.carica);
       DB.incarichi.filter(i=>i.membroId===mid && !i.al).forEach(i=>i.al=data);
       if($("#genlett",d).checked && tipo==="trasferimento-out" && chiesa){
@@ -3928,7 +3949,7 @@ function nuovoVerbale(tipo,straord){
     meditazione:"",inno:"",preghieraApertura:"",preghieraChiusura:"",
     presenti: tipo==="comitato"?comitato(oggiISO()).map(i=>i.membroId):[],
     ospiti:[], odg:[], decisioni:[], decisioniVoto:[], cronologia:[], discussioni:[],
-    letturaPrecedente:null, votazioni:[], elezioni:[],
+    letturaPrecedente:null, lettureAperture:[], votazioni:[], elezioni:[],
     presentiApertura:null, presentiUscita:null,
     stato:"preparazione", firme:{dirigente:null,segretario:null},
     decisioniVotoId:[], decisioniOra:[], decisioniScadenza:[], decisioniNote:[], annullato:null,
@@ -4046,13 +4067,18 @@ function editorVerbale(v){
     ${prep?`<div class="avv b">Questo verbale è <b>in preparazione</b>: puoi scrivere l'ordine del giorno con calma adesso. Quando la riunione comincia davvero tocca <b>Inizia la riunione</b> e l'ora di apertura viene presa in quel momento.</div>`:""}
     ${isRio?`<div class="avv r"><b>La chiesa è in carico a chi presiede.</b> Tutti gli incarichi decadono alla data del ${dataIT(v.data)}. Il verbale lo scrive e lo firma il segretario pro tempore.</div>`:""}
     ${quorum && !prep && !quorum.ok?`<div class="avv r"><b>Attenzione:</b> per tenere il comitato servono almeno due fra Dirigente, Segretario e Tesoriere. Adesso ne risulta presente ${quorum.quanti===0?"nessuno":"solo uno"} (${quorum.quali.join(", ")||"—"}).</div>`:""}
-    ${!v.letturaPrecedente && !prep?`<div class="avv b" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span class="lb" style="color:var(--blu)">Da leggere in apertura</span>
-      <span>${prec?esc(titoloVerbale(prec))+" del "+dataIT(prec.data):"nessun verbale precedente dello stesso tipo"}</span>
-      ${prec?'<button class="bt sm psh" data-leggi>Apri e leggi</button>':'<span class="psh"></span>'}
-      <button class="bt sm" data-scegliv>Scegli un altro verbale</button></div>`:""}
-    ${v.letturaPrecedente?`<div class="avv v">Letto e approvato ${esc(v.letturaPrecedente.esito)}${
-      v.letturaPrecedente.titolo?`: ${esc(v.letturaPrecedente.titolo)}`:""}.</div>`:""}
+    ${!prep?`<div class="avv b">
+      <span class="lb" style="color:var(--blu)">Letture in apertura</span>
+      ${(v.lettureAperture||[]).length?`<div style="display:flex;flex-direction:column;gap:3px;margin:6px 0">${
+        v.lettureAperture.map(x=>`<div>${x.esito==="non approvato"
+          ?`<b style="color:var(--timbro)">Non approvato</b>`
+          :`Letto e approvato <b>${esc(x.esito)}</b>`}${x.titolo?": "+esc(x.titolo):""}${x.nota?` — <i>${esc(x.nota)}</i>`:""}</div>`).join("")}</div>`:""}
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:2px">
+        ${prec && !(v.lettureAperture||[]).some(x=>x.verbaleId===prec.id)
+          ?`<span>${esc(titoloVerbale(prec))} del ${dataIT(prec.data)}</span><button class="bt sm psh" data-leggi>Apri e leggi</button>`
+          :'<span class="psh"></span>'}
+        <button class="bt sm" data-scegliv>Scegli un altro verbale</button>
+      </div></div>`:""}
 
     <div class="cols" style="grid-template-columns:1.05fr 1fr">
       <div>
@@ -4486,26 +4512,42 @@ function scegliVerbaleDaLeggere(v){
 
 <script>
 /* ---------- lettura del verbale precedente ---------- */
+/* si possono leggere e approvare più verbali di fila (l'assemblea passata,
+   poi magari anche un comitato tenuto nel frattempo): ogni lettura si aggiunge
+   all'elenco invece di sostituire quella di prima. */
 function leggiPrecedente(v,prec){
   if(!prec) return;
   modale({titolo:`Da leggere: ${titoloVerbale(prec)}`,largo:true,
     corpo:`<div style="font-family:var(--serif);font-size:19px;line-height:1.6">${letturaHTML(prec)}</div>`,
-    azioni:[{testo:"All'unanimità",cls:"sel",fn:()=>esitoLettura(v,"all'unanimità",prec)},
+    azioni:[{testo:"All'unanimità",cls:"sel",fn:()=>chiediNotaLettura(v,"all'unanimità",prec)},
             {testo:"A maggioranza",fn:()=>chiediMaggioranza(v,prec)},
-            {testo:"Con riserve",fn:()=>esitoLettura(v,"con riserve",prec)},
+            {testo:"Con riserve",fn:()=>chiediNotaLettura(v,"con riserve",prec)},
+            {testo:"Non approvato",cls:"dan",fn:()=>chiediNotaLettura(v,"non approvato",prec,true)},
             {testo:"Non adesso",destra:true,fn:()=>{}}]});
 }
-function esitoLettura(v,esito,prec){
-  v.letturaPrecedente={esito, verbaleId:prec?prec.id:null,
-    titolo:prec?`${titoloVerbale(prec)} del ${dataIT(prec.data)}`:""};
-  v.cronologia.push({ora:oraOra(),testo:`Lettura del ${prec?titoloVerbale(prec).toLowerCase()+" del "+dataIT(prec.data):"verbale precedente"}, approvato ${esito}`});
+function chiediNotaLettura(v,esito,prec,obbligatoria){
+  modale({titolo: esito==="non approvato"?"Perché non è stato approvato":"Nota per questa lettura",corpo:
+    campo("Nota",'__n',"","area",'placeholder="facoltativa, se serve dire qualcosa in più"')+
+    (obbligatoria?`<div class="avv o">Scrivi almeno in breve che cosa non va: resta scritto nel verbale.</div>`:""),
+    azioni:[{testo:"Annulla",fn:()=>{}},{testo:"Conferma",cls:"pri",destra:true,fn:(d)=>{
+      const n=$('[data-c="__n"]',d).value.trim();
+      if(obbligatoria && !n){ alert("Scrivi almeno in breve che cosa non va."); return false; }
+      esitoLettura(v,esito,prec,n); }}]});
+}
+function esitoLettura(v,esito,prec,nota){
+  v.lettureAperture=v.lettureAperture||[];
+  v.lettureAperture.push({esito, verbaleId:prec?prec.id:null,
+    titolo:prec?`${titoloVerbale(prec)} del ${dataIT(prec.data)}`:"", nota:nota||""});
+  v.cronologia.push({ora:oraOra(),testo:`Lettura del ${prec?titoloVerbale(prec).toLowerCase()+" del "+dataIT(prec.data):"verbale precedente"}${
+    esito==="non approvato"?", non approvato":", approvato "+esito}${nota?" — "+nota:""}`});
   v.cronologia.sort((a,b)=>a.ora.localeCompare(b.ora)); salva(); disegna();
 }
 function chiediMaggioranza(v,prec){
-  modale({titolo:"A maggioranza",corpo:`<div class="fr">${campo("Voti a favore","__a","","number")}${campo("Su quanti presenti","__b","","number")}</div>`,
+  modale({titolo:"A maggioranza",corpo:`<div class="fr">${campo("Voti a favore","__a","","number")}${campo("Su quanti presenti","__b","","number")}</div>
+    ${campo("Nota","__n","","area",'placeholder="facoltativa"')}`,
     azioni:[{testo:"Annulla",fn:()=>{}},{testo:"Registra",cls:"pri",destra:true,fn:(d)=>{
       const a=$('[data-c="__a"]',d).value,b=$('[data-c="__b"]',d).value;
-      esitoLettura(v,a&&b?`a maggioranza ${a}/${b}`:"a maggioranza",prec); }}]});
+      esitoLettura(v,a&&b?`a maggioranza ${a}/${b}`:"a maggioranza",prec,$('[data-c="__n"]',d).value.trim()); }}]});
 }
 function letturaHTML(v){
   const p=[], isCom=v.tipo==="comitato";
@@ -7349,7 +7391,7 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.2";
+const VERSIONE_APP="26.3";
 const AGGIORNATA_IL="22 settembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
