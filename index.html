@@ -67,19 +67,19 @@ button,input,select,textarea{font:inherit;color:inherit}
 .cxw>.qx{position:absolute;right:3px;top:50%;transform:translateY(-50%);border:0;background:none;
   color:var(--ink2);font-size:19px;line-height:1;padding:0 5px;cursor:pointer}
 .cxw>.qx:hover{color:var(--ink)}
-.sb-f{margin-top:auto;padding:10px 8px 0;border-top:1px solid var(--bordo);font-family:var(--mono);font-size:10.6px;color:var(--ink3);line-height:1.55}
-.sb-f b{color:var(--verde);font-weight:500}
-.sb-f.dabk{border-top:2px solid var(--ocra);background:var(--ocra-t);border-radius:5px;padding:8px;color:var(--ocra)}
-.sb-f.dabk #bkStato{font-weight:600}
-.sb-f.dabk #bkStato::before{content:"● "}
-.sb-f.dabk b{color:var(--ocra)}
-.sb-f button{margin-top:6px;width:100%}
+.bk-pill{display:flex;align-items:center;gap:6px;flex:1;min-width:0;border:0;background:none;
+  padding:0 8px;border-radius:7px;font-family:var(--mono);font-size:11.2px;color:var(--ink3);cursor:pointer;text-align:left}
+.bk-pill span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-pill:hover{background:var(--sup2)}
+.bk-pill .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--verde)}
+.bk-pill.dabk{color:var(--ocra);font-weight:600}
+.bk-pill.dabk .dot{background:var(--ocra)}
 
 .mn{display:flex;flex-direction:column;min-width:0;overflow:hidden}
 .tb{display:flex;align-items:center;gap:11px;padding:14px 22px;border-bottom:1px solid var(--bordo);flex-wrap:wrap;flex:none;min-width:0;background:var(--sup);padding-top:calc(14px + env(safe-area-inset-top))}
 .tb h4{font-family:var(--serif);font-size:23.5px;font-weight:600;margin:0;letter-spacing:-.012em}
 .tb .sub{font-family:var(--mono);font-size:11.2px;letter-spacing:.07em;color:var(--ink3);text-transform:uppercase}
-.frecce{display:flex;gap:2px;padding:0 10px 8px}
+.frecce{display:flex;align-items:center;gap:2px;padding:0 6px 8px}
 .fr-b{flex:none;width:30px;height:30px;border-radius:7px;border:0;background:none;padding:0;
   display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink3)}
 .fr-b svg{width:19px;height:19px}
@@ -549,11 +549,8 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
   .sb-b{padding:0 8px 0 2px}
   .sb-b img{width:28px}
   .sb-g,.sb-sep{display:none}
-  .sb-f{display:flex;align-items:center;gap:8px;margin:0 0 0 auto;padding:2px 4px;border-top:0;
-    white-space:nowrap;font-size:10.6px;flex:none}
-  .sb-f br{display:none}
-  .sb-f button{margin-top:0;width:auto}
-  .sb-f.dabk{padding:4px 8px}
+  .frecce{margin:0 0 0 auto;padding:0;flex:none}
+  .bk-pill{flex:none;max-width:130px}
   .sb-cerca{margin:0;min-width:150px}
   .nv{width:auto;white-space:nowrap;padding:7px 11px}
   /* su schermo stretto le colonne si impilano: i riquadri devono prendersi
@@ -743,12 +740,12 @@ addEventListener("click", e=>{
   else if(e.target.closest?.("[data-redo]")) ripetiModifica();
 });
 function salva(){
-  /* la spia in fondo al menu si accende alla prima modifica e resta accesa
+  /* la spia accanto alle frecce si accende alla prima modifica e resta accesa
      finché non si fa il backup: senza finestre a tutto schermo dopo ogni tasto. */
   if(DB && DB.impostazioni && !DB.impostazioni.daBackup){
     DB.impostazioni.daBackup=true;
     const f=$("#sbf");
-    if(f){ f.classList.add("dabk"); const s=$("#bkStato"); if(s) s.textContent="Modifiche da salvare"; }
+    if(f){ f.classList.add("dabk"); const s=$("#bkStato"); if(s) s.textContent="Fai backup"; }
   }
   clearTimeout(salvaTimer);
   salvaTimer = setTimeout(async ()=>{
@@ -1833,12 +1830,11 @@ function disegna(){
         <button class="fr-b" id="btRedo" data-redo title="Ripristina la modifica annullata" ${REDO.length?"":"disabled"}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
         </button>
+        <button class="bk-pill${DB.impostazioni.daBackup?" dabk":""}" id="sbf" data-backup title="${ub?`Ultimo backup: ${dataBreve(ub)}. `:""}Tocca per fare il backup adesso">
+          <span class="dot"></span><span id="bkStato">${DB.impostazioni.daBackup?"Fai backup":(ub?"Backup "+ub.slice(8,10)+"/"+ub.slice(5,7)+"/"+ub.slice(2,4):"Mai fatto")}</span>
+        </button>
       </div>
       ${menu}
-      <div class="sb-f${DB.impostazioni.daBackup?" dabk":""}" id="sbf">
-        <span id="bkStato">${DB.impostazioni.daBackup?"Modifiche da salvare":"Ultimo backup"}</span><br>
-        ${ub?`<b>${dataBreve(ub)}</b>`:'<span style="color:var(--timbro)">mai fatto</span>'}
-        <button class="bt sm" data-backup>Backup adesso</button></div>
     </aside><main class="mn" id="mn"></main>`;
   $$("[data-vai]").forEach(b=>b.onclick=()=>vai(b.dataset.vai));
   $("[data-backup]").onclick = faiBackup;
@@ -7391,8 +7387,8 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.3";
-const AGGIORNATA_IL="22 settembre 2026";
+const VERSIONE_APP="26.4";
+const AGGIORNATA_IL="23 settembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
