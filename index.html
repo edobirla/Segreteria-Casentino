@@ -361,6 +361,8 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 .foglio .dc p{margin:0;font-size:1.04em;line-height:1.5}
 .foglio .fm{display:flex;gap:34px;margin-top:22px}
 .foglio .fm>div{flex:1}
+.foglio .alg{break-before:page;page-break-before:always;margin-top:24px}
+.foglio .alg img{display:block;max-width:100%;max-height:850px;margin:6px auto 0;border:.5px solid #CFCFC8}
 .foglio .fm .ag{height:38px;margin-bottom:1px;display:flex;align-items:flex-end}
 .foglio .fm .ag img{height:100%;width:auto}
 .foglio .fm .rg{border-top:.5px solid #8E8E88;padding-top:5px;font-family:var(--sans);font-size:10.6px;color:#5B5B55}
@@ -909,10 +911,10 @@ function decorrenzaIncarichi(dataRaduno){
 const VUOTI_VERBALE={straordinario:false, numero:null, iniziato:false, oraApertura:"", oraChiusura:"",
   presiedeId:"", dirigenteId:"", segretarioId:"", meditazione:"", inno:"",
   preghieraApertura:"", preghieraChiusura:"", presenti:[], ospiti:[], odg:[], decisioni:[],
-  decisioniVoto:[], decisioniVotoId:[], decisioniOra:[], decisioniScadenza:[], decisioniNote:[], cronologia:[],
+  decisioniVoto:[], decisioniVotoId:[], decisioniOra:[], decisioniScadenza:[], decisioniNote:[], decisioniAllegato:[], cronologia:[],
   discussioni:[], letturaPrecedente:null, lettureAperture:[], votazioni:[], elezioni:[], impegniChiusi:[], modifiche:[],
   presentiApertura:null, presentiUscita:null, stato:"preparazione", annullato:null,
-  incarichiApplicati:false, decorrenza:null, correzione:false};
+  incarichiApplicati:false, decorrenza:null, correzione:false, allegati:[]};
 const VUOTI_MEMBRO={cognome:"", nome:"", sesso:"M", nato:"", cittadinanza:"", telefono:"", email:"",
   cittaNascita:"", professione:"", titoloStudio:"", statoCivile:"", indirizzo:"", cap:"", citta:"",
   provincia:"", padreId:"", madreId:"", coniugeId:"", foto:null, firma:null, pastore:false,
@@ -967,7 +969,7 @@ function normalizza(){
        il primo elemento dell'elenco, che adesso può averne più d'uno. */
     if((!v.lettureAperture || !v.lettureAperture.length) && v.letturaPrecedente)
       v.lettureAperture=[v.letturaPrecedente];
-    ["decisioniVoto","decisioniVotoId","decisioniOra","decisioniScadenza","decisioniNote"].forEach(k=>{
+    ["decisioniVoto","decisioniVotoId","decisioniOra","decisioniScadenza","decisioniNote","decisioniAllegato"].forEach(k=>{
       if(!Array.isArray(v[k])) v[k]=[];
       const n=(v.decisioni||[]).length;
       while(v[k].length < n) v[k].push(null);
@@ -2307,10 +2309,13 @@ function puntiDiTaglio(corpo, utile){
     else segna(c); } })(corpo);
   const titoli=[...corpo.querySelectorAll(".catt,h6,.ls,.st2")]
     .map(e=>e.getBoundingClientRect().top-base);
+  const forzati=[...corpo.querySelectorAll(".alg")].map(e=>e.getBoundingClientRect().top-base);
   const tot=Math.ceil(Math.max(corpo.scrollHeight, ...blocchi.map(b=>b[1]), 1))+2;
   const tagli=[0]; let giri=0;
   while(tagli[tagli.length-1]+utile < tot && giri++ < 300){
     const inizio=tagli[tagli.length-1], y=inizio+utile, minimo=inizio+utile*.25;
+    const salto=forzati.find(t=>t>inizio+1 && t<=y);
+    if(salto!==undefined){ tagli.push(Math.round(salto)-12); continue; }   // .alg ha 24px di aria sopra: si taglia a meta'
     let alto=y;
     for(const [t,b] of blocchi) if(t<y-1 && b>y+1 && t>minimo) alto=Math.min(alto,t);
     /* un titolo di sezione non resta da solo in fondo alla pagina */
@@ -3948,8 +3953,8 @@ function nuovoVerbale(tipo,straord){
     letturaPrecedente:null, lettureAperture:[], votazioni:[], elezioni:[],
     presentiApertura:null, presentiUscita:null,
     stato:"preparazione", firme:{dirigente:null,segretario:null},
-    decisioniVotoId:[], decisioniOra:[], decisioniScadenza:[], decisioniNote:[], annullato:null,
-    incarichiApplicati:false, decorrenza:null, modifiche:[]};
+    decisioniVotoId:[], decisioniOra:[], decisioniScadenza:[], decisioniNote:[], decisioniAllegato:[], annullato:null,
+    incarichiApplicati:false, decorrenza:null, modifiche:[], allegati:[]};
   /* alla riorganizzazione la prima cosa che si vota è chi scrive e firma il verbale */
   if(tipo==="riorganizzazione"){
     v.segretarioId="";
@@ -4160,11 +4165,15 @@ function editorVerbale(v){
                   ${sc&&sc.chi?`<span class="lb">${esc(sc.chi)}</span>`:""}
                   <button class="bt sm gh" data-sc="${i}">${sc&&sc.entro?"Cambia la scadenza":"+ Da fare entro il…"}</button>
                   <button class="bt sm gh" data-nt="${i}">${nt?"Modifica la nota":"+ Nota"}</button>
+                  ${(v.allegati||[]).length?`<select class="i" data-decal="${i}" style="width:auto;padding:3px 6px;font-size:12.6px">
+                    <option value="">📎 nessun allegato</option>${v.allegati.map((a,j)=>
+                    `<option value="${a.id}"${(v.decisioniAllegato||[])[i]===a.id?" selected":""}>📎 allegato ${j+1} — ${esc(a.nome)}</option>`).join("")}</select>`:""}
                 </div></div>
               <span></span></div>`;}).join("")}</div>`
             :`<div class="vuoto">Nessuna decisione. Le decisioni si prendono <b>votando</b>: apri una votazione qui sopra e, quando la approvi, la decisione compare qui già scritta.</div>`}
             <div class="avv n" style="font-size:12.9px">Ogni decisione nasce da una votazione: il testo si può correggere, il voto no.</div>
           </div></div>
+          ${bloccoAllegatiVerbale(v)}
           <div class="pn" style="flex:none"><div class="pn-h"><span class="lb">Discusso, senza decisione</span>
             <span class="cp b psh">argomenti di cui si è parlato, senza votare</span></div>
             <div class="pn-b"><div class="lista">${(v.discussioni||[]).map((t,i)=>
@@ -4208,6 +4217,17 @@ function editorVerbale(v){
   $$("[data-osadd]").forEach(b=>b.onclick=()=>{ v.ospiti.push(conTitolo(b.dataset.osadd)); salva(); disegna(); });
   $$("[data-sc]").forEach(b=>b.onclick=()=>scadenzaDecisione(v,+b.dataset.sc));
   $$("[data-nt]").forEach(b=>b.onclick=()=>notaDecisione(v,+b.dataset.nt));
+  $$("[data-decal]").forEach(b=>b.onchange=()=>{ allineaDecisioni(v);
+    v.decisioniAllegato[+b.dataset.decal]=b.value||null; salva(); });
+  $("[data-algadd]")?.addEventListener("click",()=>aggiungiAllegato(null,v));
+  $("[data-algscan]")?.addEventListener("click",()=>scansiona(null,v));
+  $$("[data-algn]").forEach(b=>b.onchange=()=>{ v.allegati[+b.dataset.algn].nome=b.value.trim()||"Allegato"; salva(); disegna(); });
+  $$("[data-algx]").forEach(b=>b.onclick=()=>conferma("Togli questo allegato dal verbale?",async ()=>{
+    const a=v.allegati[+b.dataset.algx];
+    for(const id of [a.id,...(a.pagine||[])]) await mediaElimina(id);
+    v.allegati.splice(+b.dataset.algx,1);
+    v.decisioniAllegato=(v.decisioniAllegato||[]).map(x=>x===a.id?null:x);
+    salva(); disegna(); }));
   $("[data-scegliv]")?.addEventListener("click",()=>scegliVerbaleDaLeggere(v));
   $$("[data-o]").forEach(t=>{ autoAlto(t); t.oninput=()=>{ v.odg[+t.dataset.o]=t.value; autoAlto(t); salva(); }; });
   $$("[data-d]").forEach(t=>{ autoAlto(t); t.oninput=()=>{ v.decisioni[+t.dataset.d]=t.value; autoAlto(t); salva(); }; });
@@ -4402,6 +4422,32 @@ function notaDecisione(v,i){
         allineaDecisioni(v);
         v.decisioniNote[i]=$('[data-c="__n"]',d).value.trim();
         salva(); disegna(); }}]});
+}
+/* documenti presentati in riunione (il rapporto del tesoriere…): stanno in fondo al
+   verbale, uno per pagina, e la decisione che li approva li richiama col numero. */
+function bloccoAllegatiVerbale(v){
+  const al=v.allegati||[];
+  return `<div class="pn" style="flex:none"><div class="pn-h"><span class="lb">Allegati</span>
+      <span class="cp${al.length?" v":""}">${al.length}</span>
+      <button class="bt sm psh" data-algadd>+ Allegato</button>
+      <button class="bt sm" data-algscan>Scansiona (PDF)</button></div>
+    <div class="pn-b">${al.length?`<div class="lista">${al.map((a,i)=>
+      `<div class="el"><span class="n">${i+1}.</span>
+        <input class="i" data-algn="${i}" value="${esc(a.nome)}" title="come si chiama sul verbale">
+        <button class="x" data-algx="${i}">×</button></div>`).join("")}</div>
+      <div class="avv n" style="font-size:12.9px">Scrivi un nome chiaro (es. «Rapporto della tesoreria, 2° e 3° trimestre»), poi collegalo alla decisione con 📎: sul verbale comparirà «(dettaglio in allegato 1)».</div>`
+    :'<div class="vuoto">Un documento presentato in riunione — il rapporto della tesoreria, un preventivo — si allega qui e si stampa in fondo al verbale.</div>'}</div></div>`;
+}
+function rifAllegato(v,i){
+  const id=(v.decisioniAllegato||[])[i]; if(!id) return "";
+  const n=(v.allegati||[]).findIndex(a=>a.id===id);
+  return n<0 ? "" : ` <em>(dettaglio in allegato ${n+1})</em>`;
+}
+function allegatiStampa(v){
+  return (v.allegati||[]).map((a,i)=>`<div class="alg"><span class="ls">Allegato ${i+1} — ${esc(a.nome)}</span>
+    ${a.pagine&&a.pagine.length ? a.pagine.map(id=>`<img src="${img(id)}" alt="">`).join("")
+      : a.tipo&&a.tipo.startsWith("image/") ? `<img src="${img(a.id)}" alt="">`
+      : `<p>Documento conservato nell'archivio della segreteria (file «${esc(a.nome)}»).</p>`}</div>`).join("");
 }
 function bloccoImpegni(v){
   const l=impegniAperti().filter(x=>x.v.id!==v.id && x.v.data<=v.data);
@@ -4678,7 +4724,7 @@ function fogliaVerbale(v){
     ${v.decisioni.length?`<div class="db"><span class="ls">Decisioni</span>
       ${v.decisioni.map((t,i)=>{ const sc=(v.decisioniScadenza||[])[i], nt=(v.decisioniNote||[])[i];
         return `<div class="dc"><span class="n">${i+1}.${(v.decisioniOra||[])[i]?`<span class="ora">${esc(v.decisioniOra[i])}</span>`:""}</span>
-        <div><p>${esc(t)}</p>${tabellaVoto((v.decisioniVoto||[])[i])}
+        <div><p>${esc(t)}${rifAllegato(v,i)}</p>${tabellaVoto((v.decisioniVoto||[])[i])}
         ${sc&&sc.entro?`<p class="scad${sc.chiusa?" ok":""}">Da fare entro il ${dataIT(sc.entro)}${sc.chi?` — ${esc(sc.chi)}`:""}${
           sc.chiusa?` · assolto il ${dataIT(sc.chiusa.data)}`:""}.</p>`:""}
         ${nt?`<p class="nota-dec"><span class="et">Nota —</span> ${esc(nt)}</p>`:""}</div></div>`;}).join("")}</div>`:""}
@@ -4692,6 +4738,7 @@ function fogliaVerbale(v){
       ${bloccoFirma(v,"dirigente", isRio?"Chi presiede":"Il Dirigente", isRio?v.presiedeId:(chiHa("Dirigente",v.data)[0]||v.dirigenteId))}
       ${bloccoFirma(v,"segretario", isRio?"Il Segretario pro tempore":"Il Segretario", v.segretarioId)}
     </div>
+    ${allegatiStampa(v)}
     ${piedeFoglio(`${titoloVerbale(v)} · ${dataBreve(v.data)}`)}
   </div>`;
 }
@@ -5268,7 +5315,7 @@ function chiediTesto(v,x,esito){
       x.esito=esito; x.ora=x.ora||oraOra(); x.testoScelto=t;
       scriviEsitoVoto(v,x,app,false,t); }}]});
 }
-const ARR_DEC=["decisioniVoto","decisioniVotoId","decisioniOra","decisioniScadenza","decisioniNote"];
+const ARR_DEC=["decisioniVoto","decisioniVotoId","decisioniOra","decisioniScadenza","decisioniNote","decisioniAllegato"];
 function allineaDecisioni(v){
   ARR_DEC.forEach(k=>{ v[k]=v[k]||[];
     while(v[k].length < v.decisioni.length) v[k].push(null);
@@ -5295,6 +5342,7 @@ function scriviEsitoVoto(v,x,approvata,zitto,testo){
       v.decisioniOra.push(x.ora||oraOra());
       v.decisioniScadenza.push(null);
       v.decisioniNote.push("");
+      v.decisioniAllegato.push(null);
     }
     x.decisioneFatta=true;
   }
@@ -5654,7 +5702,7 @@ function presenzeTrimestri(id, anno){
   }).filter(x=>x.sabati.length);
 }
 
-let sabData=null, sabFunz="preghiera", sabCerca="", sabModo="elenco", sabAnno=null, sabTrim="";
+let sabData=null, sabFunz="preghiera", sabCerca="", sabOspCerca="", sabModo="elenco", sabAnno=null, sabTrim="";
 let periodoSab="6m", periodoAss="1a";
 VISTE.presenze=(arg)=>{
   ordinaSabati();
@@ -5902,7 +5950,9 @@ function segnaSabato(){
   const dentro = k => (s && s.f[k]) || [];
   const prima = FUNZIONI.findIndex(([k])=>k===sabFunz)-1;
   const daCopiare = prima>=0 ? FUNZIONI[prima] : null;
-  const noti = (DB.ospitiNoti||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome,"it"));
+  const qo=sabOspCerca.trim().toLowerCase();
+  const noti = (DB.ospitiNoti||[]).filter(o=>!qo||o.nome.toLowerCase().includes(qo))
+    .sort((a,b)=>a.nome.localeCompare(b.nome,"it"));
 
   schermo(testata("Sto segnando le presenze",
     s?`${dataLunga(s.data)} · ${dataBreve(s.data)}${s.escluso?" · "+esc(s.motivo||"non si conta")
@@ -5922,7 +5972,20 @@ function segnaSabato(){
         <b>${esc(s.motivo||"Sabato senza programma")}.</b><br><br>Questo sabato non entra in nessuna statistica:
         niente media, niente conteggio delle assenze.<br>Se invece il programma c'è stato, rimetti «Programma normale» qui sopra.
         <div style="max-width:420px;margin:18px auto 0">${campo("Nota","note",s.note||"","text",'placeholder="che cosa c\'era"')}</div></div></div></div>`
-    :`<div class="cols" style="grid-template-columns:1.5fr 1fr;flex:1">
+    :`<div class="pn" style="flex:none"><div class="pn-h"><span class="lb">Come sta andando</span></div>
+      <div class="pn-b" style="flex:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px">
+        ${FUNZIONI.map(([k,n])=>{ const osp=(s.osp[k]||[]).length+sommaFasce((s.anon||{})[k]);
+          return `<div style="border:1px solid ${sabFunz===k?"var(--blu)":"var(--bordo)"};border-radius:8px;padding:7px 10px">
+            <div class="lb" title="${ORARI[k]}">${esc(n)}</div><b style="font-size:1.35em">${totaleFunzione(s,k)}</b>
+            ${osp?` <span style="color:var(--ocra);font-size:.85em">di cui ${osp} ospit${osp===1?"e":"i"}</span>`:""}</div>`;}).join("")}
+        <div style="border:1px solid var(--bordo);border-radius:8px;padding:7px 10px;background:var(--sup2)">
+          <div class="lb">Il momento più pieno</div><b style="font-size:1.35em">${piccoSabato(s).tot}</b>
+          <span style="color:var(--ink3);font-size:.85em">${esc(piccoSabato(s).nome.toLowerCase())}</span></div>
+        <div style="border:1px solid var(--bordo);border-radius:8px;padding:7px 10px;background:var(--sup2)">
+          <div class="lb">Membri al mattino</div><b style="font-size:1.35em">${presentiSabato(s).length}</b>
+          <span style="color:var(--ink3);font-size:.85em">di ${L.length}</span></div>
+      </div></div>
+    <div class="cols" style="grid-template-columns:1.5fr 1fr;flex:1">
       <div>
         <div class="tab">${FUNZIONI.map(([k,n])=>
           `<button class="${sabFunz===k?"on":""}" data-fz="${k}" title="${esc(n)} · ${ORARI[k]}">${esc(n)} &nbsp;<b>${totaleFunzione(s,k)}</b></button>`).join("")}</div>
@@ -5942,27 +6005,23 @@ function segnaSabato(){
       <div>
         <div class="pn" style="flex:none"><div class="pn-h"><span class="lb">Ospiti — ${esc(NOME_FUNZ[sabFunz])}</span>
           <span class="cp o">${(s.osp[sabFunz]||[]).length + sommaFasce((s.anon||{})[sabFunz])}</span>
+          ${conX(`<input class="i psh" id="qosp" placeholder="Cerca un ospite…" value="${esc(sabOspCerca)}" autocomplete="off"
+            style="min-width:100px;padding:4px 8px;font-size:13.4px">`, sabOspCerca, "flex:0 1 180px")}
           <button class="bt sm psh" data-ospadd>+ Ospite con nome</button></div>
           <div class="pn-b t0" style="flex:none">
-            ${noti.length?`<div class="pgrid">${noti.map(o=>{
+            ${noti.length?`<div class="pgrid" style="max-height:38vh;overflow-y:auto">${noti.map(o=>{
               const e=etaOspite(o.id,s.data);
               return `<div class="pchip ${(s.osp[sabFunz]||[]).includes(o.id)?"si":"no"}">
                 <div style="flex:1;min-width:0"><div class="nm" title="${esc(o.nome)}">${esc(o.nome)}</div>
                   <div class="ru">${e===null?"età non indicata":"circa "+e+" anni"}</div></div>
                 <button class="tg ${(s.osp[sabFunz]||[]).includes(o.id)?"on":""}" data-so="${o.id}"></button></div>`;}).join("")}</div>`
+              :qo?'<div class="vuoto">Nessun ospite trovato.</div>'
               :'<div class="vuoto">Nessun ospite in elenco. Con «+ Ospite con nome» il nome resta e i sabati dopo basta spuntarlo.</div>'}
             <div class="lb" style="padding:11px 14px 3px;border-top:1px solid var(--bordo)">Ospiti di cui non so il nome — conta l'età all'incirca</div>
             <div class="vg fasce" style="padding:4px 14px 12px">${FASCE.map(([k,n])=>
               pulsanteVoto(n, ((s.anon||{})[sabFunz]||{})[k]||0, "a_"+k)).join("")}</div>
           </div></div>
-        <div class="pn" style="flex:none"><div class="pn-h"><span class="lb">Come sta andando</span></div>
-          <div class="pn-b t0" style="flex:none"><table class="t2">
-            ${FUNZIONI.map(([k,n])=>{ const osp=(s.osp[k]||[]).length+sommaFasce((s.anon||{})[k]);
-              return `<tr><td>${esc(n)}<span style="color:var(--ink3)"> · ${ORARI[k]}</span></td>
-              <td><b>${totaleFunzione(s,k)}</b>${osp?` <span style="color:var(--ocra);font-size:.85em">di cui ${osp} ospit${osp===1?"e":"i"}</span>`:""}</td></tr>`;}).join("")}
-            <tr class="tt"><td>Il momento più pieno</td><td style="white-space:nowrap">${piccoSabato(s).tot} · ${esc(piccoSabato(s).nome.toLowerCase())}</td></tr>
-            <tr><td>Membri al mattino</td><td style="white-space:nowrap">${presentiSabato(s).length} di ${L.length}</td></tr>
-          </table></div>
+        <div class="pn" style="flex:none">
           <div class="pn-b" style="flex:none">${campo("Nota del sabato","note",s.note||"","text",'placeholder="visita del pastore…"')}
             <label style="display:flex;align-items:center;gap:9px;font-size:14.6px">
               <input type="checkbox" data-c="santaCena" ${s.santaCena?"checked":""}> C'è la Santa Cena, oggi</label>
@@ -6008,6 +6067,7 @@ function segnaSabato(){
     (k,val)=>{ s.anon=s.anon||{}; s.anon[sabFunz]=s.anon[sabFunz]||fasceVuote();
       s.anon[sabFunz][k.slice(2)]=val; salva(); }, ()=>disegna());
   collegaFiltro("qsab",t=>{ sabCerca=t; });
+  collegaFiltro("qosp",t=>{ sabOspCerca=t; });
   $("[data-stutti]").onclick=()=>{ const ora=oraOra();
     s.ore=s.ore||{}; s.ore[sabFunz]=s.ore[sabFunz]||{};
     vis.forEach(m=>{ if(!s.ore[sabFunz][m.id]) s.ore[sabFunz][m.id]=ora; });
@@ -7387,8 +7447,8 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.4";
-const AGGIORNATA_IL="23 settembre 2026";
+const VERSIONE_APP="26.5";
+const AGGIORNATA_IL="26 settembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
