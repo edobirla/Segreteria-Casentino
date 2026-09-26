@@ -342,11 +342,11 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 .foglio .pr.fitte{display:block;columns:2;column-gap:22px}
 .foglio .pr.fitte span{display:flex;break-inside:avoid;margin-bottom:2.5px}
 .foglio .du.larga{grid-template-columns:1.55fr 1fr}
-.foglio .pr span{display:flex;gap:7px;align-items:baseline}
-.foglio .pr span::before{content:"";width:5px;height:5px;border-radius:50%;background:#2A6349;flex:none;transform:translateY(-1px)}
+.foglio .pr span{display:flex;gap:7px;align-items:flex-start;line-height:1.45}
+.foglio .pr .pt{display:block;width:5px;height:5px;border-radius:50%;background:#2A6349;flex:none;margin-top:calc(.725em - 2px)}
 .foglio .pr span.as{color:#9A9A94}
-.foglio .pr span.pz::before{background:linear-gradient(90deg,#2A6349 50%,#FFF 50%);border:.5px solid #2A6349;box-sizing:border-box}
-.foglio .pr span.as::before{background:transparent;border:.5px solid #B9B9B1}
+.foglio .pr span.pz>.pt{background:linear-gradient(90deg,#2A6349 50%,#FFF 50%);border:.5px solid #2A6349;box-sizing:border-box}
+.foglio .pr span.as>.pt{background:transparent;border:.5px solid #B9B9B1}
 .foglio .pr em{font-style:italic;color:#8A8A84;font-size:.9em}
 .foglio .cr{display:flex;flex-direction:column;gap:2.5px}
 .foglio .cr span{display:flex;gap:9px;align-items:baseline}
@@ -359,7 +359,7 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 .foglio .dc:last-child{border-bottom:0}
 .foglio .dc .n{font-family:var(--mono);font-size:.82em;color:#17369B;padding-top:.25em}
 .foglio .dc p{margin:0;font-size:1.04em;line-height:1.5}
-.foglio .fm{display:flex;gap:34px;margin-top:22px}
+.foglio .fm{display:flex;gap:34px;margin-top:22px;padding-bottom:8px}
 .foglio .fm>div{flex:1}
 .foglio .alg{break-before:page;page-break-before:always;margin-top:24px}
 .foglio .alg img{display:block;max-width:100%;max-height:850px;margin:6px auto 0;border:.5px solid #CFCFC8}
@@ -375,7 +375,7 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 .foglio .vv td:last-child{text-align:right;font-family:var(--mono)}
 .foglio .dc .vv{margin:.4em 0 .1em;max-width:300px}
 .foglio .vq{font-family:var(--sans);font-size:.82em;color:#7A7A74;margin:.25em 0 0}
-.foglio .pr span.os::before{background:#8A6A1F}
+.foglio .pr span.os>.pt{background:#8A6A1F}
 /* verbale annullato: resta il documento, ma si vede da lontano che non vale piu' */
 .foglio{position:relative}
 .foglio .wmk{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;overflow:hidden;z-index:2}
@@ -538,7 +538,7 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
     font-family:var(--mono);font-size:8.4pt;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A2}
   .foglio,.lettera{border:0;padding:0;font-size:10.8pt;line-height:1.4;background:#fff}
   .foglio .dc,.foglio .fm,.lettera .firma,.nodo{break-inside:avoid}
-  .foglio .bn,.foglio .modifiche,.foglio .pr span::before{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .foglio .bn,.foglio .modifiche,.foglio .pr .pt{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .foglio .du{display:grid!important}
   .pagina2{border-top:0;margin-top:0;padding-top:0}
   .gs-foto,.gs-did{break-inside:avoid}
@@ -2324,7 +2324,11 @@ async function telaioPdf(html){
       #pdf-vista{overflow:hidden}
       #pdf-corpo,#pdf-pie{padding-left:7mm;padding-right:7mm}
       #pdf-pie{padding-bottom:6mm}
-      #pdf-pie .pf{padding:0} #pdf-pie .pie{margin-top:0}</style></head>
+      #pdf-pie .pf{padding:0} #pdf-pie .pie{margin-top:0}
+      /* ponytail: html2canvas disegna il testo circa 8px piu' in basso di dove lo mette
+         il browser (con line-height 1.45); i pallini dei presenti vanno spostati giu' a mano,
+         solo qui. Misurato a occhio sul PDF: se cambia il carattere o l'interlinea, rimisurare. */
+      #pdf-corpo .foglio .pr .pt{margin-top:calc(.725em + 6px)}</style></head>
     <body><div id="stampa">
       <div id="pdf-rh"><div class="rh${annullato?" ann":""}">${annullato
         ? "Segreteria Casentino · verbale annullato" : "Segreteria Casentino"}</div></div>
@@ -4670,10 +4674,13 @@ function esitoLettura(v,esito,prec,nota){
   v.cronologia.sort((a,b)=>a.ora.localeCompare(b.ora)); salva(); disegna();
 }
 function chiediMaggioranza(v,prec){
-  modale({titolo:"A maggioranza",corpo:`<div class="fr">${campo("Voti a favore","__a","","number")}${campo("Su quanti presenti","__b","","number")}</div>
+  const b=v.presenti.length;
+  modale({titolo:"A maggioranza",corpo:`<div class="fr">${campo("Voti a favore","__a","","number",`min="0" max="${b}" inputmode="numeric"`)}
+      <div class="fl"><span class="lb">Presenti adesso</span><div style="font-size:1.4em;font-weight:600;padding:6px 0">${b}</div></div></div>
     ${campo("Nota","__n","","area",'placeholder="facoltativa"')}`,
     azioni:[{testo:"Annulla",fn:()=>{}},{testo:"Registra",cls:"pri",destra:true,fn:(d)=>{
-      const a=$('[data-c="__a"]',d).value,b=$('[data-c="__b"]',d).value;
+      const a=$('[data-c="__a"]',d).value;
+      if(a && b && +a>b){ alert(`I favorevoli non possono essere più dei presenti (${b}).`); return false; }
       esitoLettura(v,a&&b?`a maggioranza ${a}/${b}`:"a maggioranza",prec,$('[data-c="__n"]',d).value.trim()); }}]});
 }
 function letturaHTML(v){
@@ -4688,6 +4695,9 @@ function letturaHTML(v){
   if(v.meditazione) ap.push(`meditazione: ${v.meditazione}`);
   if(v.preghieraApertura) ap.push(`preghiera di apertura: ${v.preghieraApertura}`);
   if(ap.length) p.push(`<span class="lb">Apertura</span><p style="margin:0 0 12px">${esc(ap.join(". "))}.</p>`);
+  { const ap=v.presentiApertura ?? v.presenti.length, us=v.presentiUscita ?? ap;
+    if(ap) p.push(`<p style="margin:0 0 12px"><span class="lb">Presenti in apertura</span><br><b style="font-size:1.3em">${ap}</b>${
+      us!==ap?` <span style="color:var(--ink3)">· in uscita ${us}</span>`:""}</p>`); }
   if(v.presenti.length){
     const PV=presenzeVerbale(v);
     const cera=id=>{ const s=PV.stato.get(id); return s?s.stato!=="assente":(v.presenti||[]).includes(id); };
@@ -4695,7 +4705,7 @@ function letturaHTML(v){
     const dentro=tuttiRif.filter(cera), ass=tuttiRif.filter(id=>!cera(id));
     const dice=id=>{ const s=PV.stato.get(id);
       return nomeMembro(id)+(s&&s.stato==="parziale"?` (in parte${s.uscita?", fino alle "+s.uscita:""})`:""); };
-    p.push(`<span class="lb">Presenti</span><p style="margin:0 0 12px">${esc(dentro.map(dice).join(", "))}.${
+    p.push(`<span class="lb">Chi c'era</span><p style="margin:0 0 12px">${esc(dentro.map(dice).join(", "))}.${
       ass.length?`<br><span style="color:var(--ink3)">Assenti: ${esc(ass.map(nomeMembro).join(", "))}.</span>`:""}</p>`);
   }
   if((v.ospiti||[]).length) p.push(`<span class="lb">Presenti come ospiti</span><p style="margin:0 0 12px">${esc(v.ospiti.join(", "))}.</p>`);
@@ -4781,17 +4791,17 @@ function fogliaVerbale(v, incl){
            il pastore che presiede il comitato dev'esserci, ma non fa numero. */
         const righeOsp=(v.ospiti||[]).map(o=>{ const i=o.indexOf(" — ");
           const nome=i<0?o:o.slice(0,i), nota=i<0?"ospite":o.slice(i+3);
-          return `<span class="os">${esc(nome)} <em>${esc(nota)}</em></span>`; }).join("");
+          return `<span class="os"><i class="pt"></i>${esc(nome)} <em>${esc(nota)}</em></span>`; }).join("");
         /* chi è uscito prima resta fra i presenti, con scritto fin quando c'è stato */
         const nota=id=>{ const s=stq(id);
           return s.stato==="parziale" ? `in parte${s.uscita?", fino alle "+esc(s.uscita):""}` : ""; };
         const voce=(id,ruolo)=>{ const n=nota(id);
-          return `<span${n?' class="pz"':""}>${esc(nomeMembro(id))} ${ruolo||n?`<em>${esc([ruolo,n].filter(Boolean).join(" · "))}</em>`:""}</span>`; };
+          return `<span${n?' class="pz"':""}><i class="pt"></i>${esc(nomeMembro(id))} ${ruolo||n?`<em>${esc([ruolo,n].filter(Boolean).join(" · "))}</em>`:""}</span>`; };
         const coda=`${v.ospiti?.length?` + ${v.ospiti.length} ospit${v.ospiti.length===1?"e":"i"}`:""}`;
         if(isCom) return `<span class="ls">Presenti — ${pres.length} di ${membriCom.length}${coda}</span><div class="pr">
             ${pres.map(p=>voce(p.id,p.ruolo.toLowerCase())).join("")}
             ${righeOsp}
-            ${ass.map(p=>`<span class="as">${esc(nomeMembro(p.id))} <em>assente</em></span>`).join("")}</div>`;
+            ${ass.map(p=>`<span class="as"><i class="pt"></i>${esc(nomeMembro(p.id))} <em>assente</em></span>`).join("")}</div>`;
         const dentroR=attivi().filter(m=>cera(m.id)).sort(perNome);
         const assR=attivi().filter(m=>!cera(m.id));
         /* i verbali vecchi registravano solo quanti erano presenti, non i nomi: in quel
@@ -4799,9 +4809,9 @@ function fogliaVerbale(v, incl){
         const soloNumero = !dentroR.length && (v.presentiApertura || v.presentiUscita);
         return `<span class="ls">Presenti — ${soloNumero?v.presentiApertura||v.presentiUscita:dentroR.length}${coda}</span>
           <div class="pr${fitte?" fitte":""}">${dentroR.map(m=>voce(m.id,"")).join("")
-            ||"<span class='as'>non registrati per nome</span>"}${righeOsp}</div>
+            ||"<span class='as'><i class='pt'></i>non registrati per nome</span>"}${righeOsp}</div>
           ${assR.length&&!soloNumero?`<span class="ls" style="margin-top:9px">Assenti — ${assR.length}</span>
-            <div class="pr${fitte?" fitte":""}">${assR.map(m=>`<span class="as">${esc(nomeMembro(m))}</span>`).join("")}</div>`:""}`;
+            <div class="pr${fitte?" fitte":""}">${assR.map(m=>`<span class="as"><i class="pt"></i>${esc(nomeMembro(m))}</span>`).join("")}</div>`:""}`;
       })()}</div>
       <div><span class="ls">Cronologia</span><div class="cr">
         ${v.cronologia.map(c=>`<span><i>${esc(c.ora)}</i>${esc(c.testo)}</span>`).join("")}</div></div>
@@ -6043,18 +6053,21 @@ function segnaSabato(){
     .sort((a,b)=>a.nome.localeCompare(b.nome,"it"));
 
   schermo(testata("Sto segnando le presenze",
-    s?`${dataLunga(s.data)} · ${dataBreve(s.data)}${s.escluso?" · "+esc(s.motivo||"non si conta")
-      :` — <b>${piccoSabato(s).tot} present${piccoSabato(s).tot===1?"e":"i"} in tutto</b> (${piccoSabato(s).nome.toLowerCase()}, il momento più pieno) · adesso alla ${esc(NOME_FUNZ[sabFunz].toLowerCase())}: ${totaleFunzione(s,sabFunz)}`}`:"sabato da registrare",
+    s?`${dataLunga(s.data)}${s.escluso?" · "+esc(s.motivo||"non si conta"):""}`:"sabato da registrare",
     `<button class="bt psh" data-indietro>← Tutti i sabati</button>
      <button class="bt pri" data-fine>Fine</button>`) +
   `<div class="cn">
     ${!s?`<div class="pn gro"><div class="pn-b"><div class="vuoto">Il sabato ${dataBreve(sabData)} non è ancora registrato.
       <br><br><button class="bt pri" data-crea>Registra il sabato ${dataBreve(sabData)}</button></div></div></div>`
     :`<div class="tab"><span class="lb">Che sabato è</span>
-        <select id="tipoSab">
+        <select id="tipoSab" style="width:auto;flex:0 1 auto;max-width:240px">
           <option value=""${s.escluso?"":" selected"}>Programma normale</option>
           ${MOTIVI_SABATO.map(x=>`<option value="${esc(x)}"${s.escluso&&s.motivo===x?" selected":""}>${esc(x)} — non si conta</option>`).join("")}
         </select>
+        ${s.escluso?"":`<input class="i" data-c="note" value="${esc(s.note||"")}" placeholder="Nota del sabato: visita del pastore…"
+          style="flex:1 1 180px;min-width:140px;width:auto">
+        <label style="display:flex;align-items:center;gap:7px;font-size:14.6px;white-space:nowrap">
+          <input type="checkbox" data-c="santaCena" ${s.santaCena?"checked":""}> Santa Cena oggi</label>`}
         <span class="lb psh">${dataBreve(s.data)}</span></div>
      ${s.escluso?`<div class="pn gro"><div class="pn-b"><div class="vuoto">
         <b>${esc(s.motivo||"Sabato senza programma")}.</b><br><br>Questo sabato non entra in nessuna statistica:
@@ -6063,20 +6076,20 @@ function segnaSabato(){
     :`<div class="pn" style="flex:none"><div class="pn-h"><span class="lb">Come sta andando</span></div>
       <div class="pn-b" style="flex:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px">
         ${FUNZIONI.map(([k,n])=>{ const osp=(s.osp[k]||[]).length+sommaFasce((s.anon||{})[k]);
-          return `<div style="border:1px solid ${sabFunz===k?"var(--blu)":"var(--bordo)"};border-radius:8px;padding:7px 10px">
-            <div class="lb" title="${ORARI[k]}">${esc(n)}</div><b style="font-size:1.35em">${totaleFunzione(s,k)}</b>
-            ${osp?` <span style="color:var(--ocra);font-size:.85em">di cui ${osp} ospit${osp===1?"e":"i"}</span>`:""}</div>`;}).join("")}
-        <div style="border:1px solid var(--bordo);border-radius:8px;padding:7px 10px;background:var(--sup2)">
-          <div class="lb">Il momento più pieno</div><b style="font-size:1.35em">${piccoSabato(s).tot}</b>
-          <span style="color:var(--ink3);font-size:.85em">${esc(piccoSabato(s).nome.toLowerCase())}</span></div>
-        <div style="border:1px solid var(--bordo);border-radius:8px;padding:7px 10px;background:var(--sup2)">
-          <div class="lb">Membri al mattino</div><b style="font-size:1.35em">${presentiSabato(s).length}</b>
-          <span style="color:var(--ink3);font-size:.85em">di ${L.length}</span></div>
+          return `<button data-fz="${k}" title="${esc(n)} · ${ORARI[k]}" style="display:flex;flex-direction:column;justify-content:space-between;gap:4px;
+            text-align:left;font:inherit;color:inherit;cursor:pointer;border-radius:8px;padding:7px 10px;
+            border:${sabFunz===k?"2px solid var(--blu);background:var(--blu-t)":"1px solid var(--bordo);background:var(--sup)"}">
+            <span class="lb">${esc(n)}</span><span><b style="font-size:1.35em">${totaleFunzione(s,k)}</b>
+            ${osp?` <span style="color:var(--ocra);font-size:.85em">di cui ${osp} ospit${osp===1?"e":"i"}</span>`:""}</span></button>`;}).join("")}
+        <div style="display:flex;flex-direction:column;justify-content:space-between;gap:4px;border:1px solid var(--bordo);border-radius:8px;padding:7px 10px;background:var(--sup2)">
+          <span class="lb">Il momento più pieno</span><span><b style="font-size:1.35em">${piccoSabato(s).tot}</b>
+          <span style="color:var(--ink3);font-size:.85em">${esc(piccoSabato(s).nome.toLowerCase())}</span></span></div>
+        <div style="display:flex;flex-direction:column;justify-content:space-between;gap:4px;border:1px solid var(--bordo);border-radius:8px;padding:7px 10px;background:var(--sup2)">
+          <span class="lb">Membri al mattino</span><span><b style="font-size:1.35em">${presentiSabato(s).length}</b>
+          <span style="color:var(--ink3);font-size:.85em">di ${L.length}</span></span></div>
       </div></div>
     <div class="cols" style="grid-template-columns:1.5fr 1fr;flex:1">
       <div>
-        <div class="tab">${FUNZIONI.map(([k,n])=>
-          `<button class="${sabFunz===k?"on":""}" data-fz="${k}" title="${esc(n)} · ${ORARI[k]}">${esc(n)} &nbsp;<b>${totaleFunzione(s,k)}</b></button>`).join("")}</div>
         <div class="pn gro pres">
           <div class="pn-h"><span class="lb">${esc(NOME_FUNZ[sabFunz])}</span>
             <span class="cp v">${dentro(sabFunz).length} di ${L.length}</span>
@@ -6108,11 +6121,6 @@ function segnaSabato(){
             <div class="lb" style="padding:11px 14px 3px;border-top:1px solid var(--bordo)">Ospiti di cui non so il nome — conta l'età all'incirca</div>
             <div class="vg fasce" style="padding:4px 14px 12px">${FASCE.map(([k,n])=>
               pulsanteVoto(n, ((s.anon||{})[sabFunz]||{})[k]||0, "a_"+k)).join("")}</div>
-          </div></div>
-        <div class="pn" style="flex:none">
-          <div class="pn-b" style="flex:none">${campo("Nota del sabato","note",s.note||"","text",'placeholder="visita del pastore…"')}
-            <label style="display:flex;align-items:center;gap:9px;font-size:14.6px">
-              <input type="checkbox" data-c="santaCena" ${s.santaCena?"checked":""}> C'è la Santa Cena, oggi</label>
           </div></div>
         ${s.santaCena?(()=>{ const pres=presentiSabato(s).map(membro).filter(Boolean).sort(perNome);
           const cena=new Set(s.cena||[]);
@@ -7535,7 +7543,7 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.6";
+const VERSIONE_APP="26.7";
 const AGGIORNATA_IL="26 settembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
