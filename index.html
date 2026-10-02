@@ -1857,7 +1857,7 @@ function leggiHash(){ const p=(location.hash||"#/dashboard").slice(2).split("/")
 
 /* i pannelli scorrevoli tengono la loro posizione: se tocchi un membro in fondo
    all'elenco, l'elenco resta dov'era invece di risalire in cima. */
-const scorrevoli = ()=> $$("#mn .cn, #mn .pn-b, #mn .mod-b");
+const scorrevoli = ()=> $$("#mn .cn, #mn .pn-b, #mn .mod-b, #mn .pgrid");
 function disegna(){
   GRAFICI.length=0;
   const vistaPrima = ROTTA.vista, argPrima = ROTTA.arg;
@@ -7556,8 +7556,8 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.8";
-const AGGIORNATA_IL="26 settembre 2026";
+const VERSIONE_APP="26.9";
+const AGGIORNATA_IL="2 ottobre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
