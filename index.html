@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Segreteria">
@@ -240,7 +240,7 @@ table.t2 td input{width:64px;text-align:right;font-family:var(--mono);border:1px
 table.t2 tr.tt td{font-weight:700;border-top:1.5px solid var(--ink);border-bottom:0}
 table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2)}
 .lista{display:flex;flex-direction:column}
-.el{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:8px 0;border-bottom:1px dotted var(--bordo)}
+.el{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding:8px 0;border-bottom:1px dotted var(--bordo)}
 .el:last-child{border-bottom:0}
 .el .n{font-family:var(--mono);font-size:12.3px;color:var(--blu);padding-top:8px}
 .el textarea{border:1px solid transparent;background:transparent;border-radius:5px;padding:6px 8px;font-size:14.6px;width:100%;resize:vertical;min-height:34px;line-height:1.5}
@@ -4252,7 +4252,7 @@ function editorVerbale(v){
                   ${sc&&sc.chi?`<span class="lb">${esc(sc.chi)}</span>`:""}
                   <button class="bt sm gh" data-sc="${i}">${sc&&sc.entro?"Cambia la scadenza":"+ Da fare entro il…"}</button>
                   <button class="bt sm gh" data-nt="${i}">${nt?"Modifica la nota":"+ Nota"}</button>
-                  ${(v.allegati||[]).length?`<select class="i" data-decal="${i}" style="width:auto;padding:3px 6px;font-size:12.6px">
+                  ${(v.allegati||[]).length?`<select class="i" data-decal="${i}" style="width:auto;max-width:100%;padding:3px 6px;font-size:12.6px">
                     <option value="">📎 nessun allegato</option>${v.allegati.map((a,j)=>
                     `<option value="${a.id}"${(v.decisioniAllegato||[])[i]===a.id?" selected":""}>📎 allegato ${j+1} — ${esc(a.nome)}</option>`).join("")}</select>`:""}
                 </div></div>
@@ -7556,7 +7556,7 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.9";
+const VERSIONE_APP="26.10";
 const AGGIORNATA_IL="2 ottobre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
