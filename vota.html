@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#122B7D">
 <meta name="robots" content="noindex">
-<title>Votazioni — Chiesa del Casentino</title>
+<title>Vota — Chiesa del Casentino</title>
+<link rel="manifest" href="vota.webmanifest">
+<link rel="apple-touch-icon" href="vota-icona.png">
+<link rel="icon" type="image/png" href="vota-icona.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vota">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap">
 <style>
@@ -39,6 +46,8 @@ body{background:#F5F6F2;color:var(--ink);font-family:var(--sans);font-size:15px;
 .st-form h4{font-family:var(--serif);font-size:24px;margin:0;font-weight:600}
 .st-form p{margin:0 0 2px;color:var(--ink3);font-size:14px;line-height:1.4}
 .st-form label{font-size:13px;font-weight:600;color:var(--ink2);display:flex;flex-direction:column;gap:5px}
+.st-cod{text-transform:uppercase;letter-spacing:.18em;font-weight:700;text-align:center;font-size:24px}
+.st-casa{margin-top:6px;font-size:13px;color:var(--ink3);line-height:1.45;text-align:left;background:#fff;border:1px solid var(--bordo);border-radius:12px;padding:10px 12px}
 .st-in{font:inherit;font-size:17px;color:var(--ink);border:1.5px solid var(--bordo);border-radius:12px;padding:12px 13px;background:#fff;width:100%;outline:none}
 .st-in:focus{border-color:var(--blu);box-shadow:0 0 0 3px var(--blu-t)}
 .st-q{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--ink3)}
@@ -227,9 +236,13 @@ function disegna(){
   const corpo = $("#corpo"), piede = $("#piede");
   const icona = (k,c="") => `<div class="st-ic ${c}">${IC[k]}</div>`;
   let h, p = "";
-  if(!CODICE) h = `<div class="st-c">${icona("qr")}<h4>Manca il codice</h4><p>Inquadra il QR code che compare sullo schermo della riunione.</p></div>`;
+  const installata = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  const chiediCodice = msg => { p = `<div class="st-p"><button class="st-bt" form="fcod">Entra</button></div>`; return `<form class="st-form" id="fcod"><h4>${msg}</h4><p>Il codice è sullo schermo della riunione, sotto il QR.</p>
+      <label>Codice della riunione<input class="st-in st-cod" id="cod" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" required></label>
+      ${installata ? "" : `<div class="st-casa">Per averla sempre a portata: nel menu del browser scegli <b>Aggiungi alla schermata Home</b>. Comparirà l'icona «Vota».</div>`}</form>`; };
+  if(!CODICE) h = chiediCodice("Scrivi il codice della riunione");
   else if(sess===null) h = `<div class="st-c"><div class="st-attesa"><i></i></div><p>Mi collego…</p></div>`;
-  else if(!sess || sess.stato==="chiusa") h = `<div class="st-c">${icona("pausa")}<h4>Nessuna riunione aperta</h4><p>Questo codice non è più valido. Inquadra quello sullo schermo.</p></div>`;
+  else if(!sess || sess.stato==="chiusa") h = chiediCodice("Scrivi il codice della riunione");
   else if(tel===undefined) h = `<div class="st-c"><div class="st-attesa"><i></i></div><p>Mi collego…</p></div>`;
   else if(!tel || riprova){
     h = `<form class="st-form" id="f"><h4>Chi sei?</h4><p>Il segretario controlla il nome e ti collega alla tua scheda.</p>
@@ -281,6 +294,11 @@ function risultato(r){
 
 document.addEventListener("submit", async e=>{
   e.preventDefault();
+  if(e.target.id==="fcod"){   // codice scritto a mano: la pagina riparte con quel codice
+    const c = $("#cod").value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if(c.length < 6) return;
+    location.hash = c; location.reload(); return;
+  }
   const nome = $("#fn").value.trim(), cognome = $("#fc").value.trim();
   if(!nome || !cognome) return;
   const r = FB.doc(fs, "sessioni", CODICE, "telefoni", io.uid);

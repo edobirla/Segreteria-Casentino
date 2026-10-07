@@ -1,0 +1,13 @@
+{
+  "name": "Vota — Chiesa del Casentino",
+  "short_name": "Vota",
+  "start_url": "vota.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F5F6F2",
+  "theme_color": "#122B7D",
+  "icons": [
+    {"src": "vota-icona-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "vota-icona.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

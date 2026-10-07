@@ -1,11 +1,11 @@
 {
-  "versione": "26.14",
+  "versione": "26.15",
   "data": "ottobre 2026",
   "novita": [
-    "Chi ha predicato: si scrive il nome e compaiono i presenti che somigliano; un nome nuovo resta come predicatore ospite.",
-    "In fondo al menu, in ordine: backup (tocca la riga per farlo), archivio online, chi è entrato ed «Esci».",
-    "Accessi per i dispositivi, per esempio il computer della chiesa che segna solo le presenze.",
-    "Prima attivazione: il nome scelto si vede intero.",
-    "Striscia in alto: altro tentativo contro la sfocatura sull'iPad."
+    "Proiezione dal computer della sala: si collega una volta (Impostazioni → Accessi → Schermi di proiezione) e poi mostra da solo la riunione aperta sull'iPad, senza comandi.",
+    "Codice della riunione corto (sei caratteri), scritto anche sullo schermo: chi non può inquadrare il QR lo scrive a mano.",
+    "«Manda il link» per mandare nel gruppo il collegamento al voto.",
+    "App «Vota» per il telefono, con l'icona dell'urna: si aggiunge alla schermata Home.",
+    "Il telefono che ha già votato viene riconosciuto: l'app propone il membro dell'ultima volta."
   ]
 }
