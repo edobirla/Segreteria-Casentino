@@ -261,6 +261,8 @@ function seguiSessione(c){
   addEventListener("dblclick", ()=>document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.());
   try{ await anonimo(auth); }catch(e){ $("#schermo").innerHTML = `<div class="sp-vuoto"><h2>Senza collegamento</h2><p>Controlla internet e ricarica la pagina.</p></div>`; return; }
   if(CODICE){ seguiSessione(CODICE); return; }
+  // dentro l'app (dispositivo messo a fare da schermo): niente codice dello schermo, solo il logo in attesa
+  if(new URLSearchParams(location.search).has("attesa")){ disegna(); return; }
   // senza codice nell'indirizzo è lo schermo fisso della sala: ha un suo codice e segue la riunione che l'iPad apre
   try{ mioSchermo = localStorage.getItem("schermo"); }catch(e){}
   if(!/^[A-Z0-9]{8}$/.test(mioSchermo||"")){
