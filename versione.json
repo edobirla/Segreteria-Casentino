@@ -1,13 +1,11 @@
 {
-  "versione": "26.13",
+  "versione": "26.14",
   "data": "ottobre 2026",
   "novita": [
-    "Accesso con la password: pastore, dirigente e chi scegli tu, ognuno con i suoi poteri (solo presenze, lettura, lettura e presenze, modifica). «Esci» in fondo al menu.",
-    "Archivio online: i dispositivi si allineano da soli, anche dopo aver lavorato senza rete.",
-    "Voto segreto dai telefoni, con lo schermo di proiezione e il risultato sui telefoni.",
-    "Votazioni: favorevole o contrario, più opzioni, nomi proposti e candidato unico sì o no.",
-    "Dopo le elezioni: passaggio della segreteria e del dirigente con credenziali nuove.",
-    "Chi ha predicato ogni sabato, con il conteggio nella scheda del membro.",
-    "Foto e allegati più leggeri; le presenze del sabato senza ora; la Guida con i capitoli nuovi."
+    "Chi ha predicato: si scrive il nome e compaiono i presenti che somigliano; un nome nuovo resta come predicatore ospite.",
+    "In fondo al menu, in ordine: backup (tocca la riga per farlo), archivio online, chi è entrato ed «Esci».",
+    "Accessi per i dispositivi, per esempio il computer della chiesa che segna solo le presenze.",
+    "Prima attivazione: il nome scelto si vede intero.",
+    "Striscia in alto: altro tentativo contro la sfocatura sull'iPad."
   ]
 }
