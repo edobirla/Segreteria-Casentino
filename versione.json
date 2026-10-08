@@ -1,9 +1,7 @@
 {
-  "versione": "26.19",
+  "versione": "26.20",
   "data": "ottobre 2026",
   "novita": [
-    "Quando esce un aggiornamento compare una finestra con le novità e il pulsante «Aggiorna».",
-    "Se ci sono modifiche non ancora salvate, la stessa finestra propone «Fai backup» prima di aggiornare.",
-    "Tutorial animato del voto: telefono più grande, scheda bianca, ritmo più calmo e pulsante «Schermo intero»."
+    "Il tutorial e lo schermo di proiezione si aprono dentro l'app, a tutto schermo, con il pulsante «Chiudi» per tornare indietro (sull'iPad prima non si poteva uscire)."
   ]
 }

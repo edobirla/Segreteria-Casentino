@@ -3,7 +3,7 @@
    uguale in aereo, in chiesa senza campo o con il wi-fi spento.
    La pagina si prende dalla rete quando c'e' (cosi' gli aggiornamenti arrivano)
    e dalla cache quando non c'e'. Tutto il resto (caratteri) e' cache-first. */
-const C = "segreteria-v31";
+const C = "segreteria-v32";
 
 self.addEventListener("install", e => {
   self.skipWaiting();
