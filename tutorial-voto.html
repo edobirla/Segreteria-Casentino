@@ -45,7 +45,7 @@ body.mostra .comandi{opacity:1}
 .sc{width:390px;height:844px;border-radius:50px;overflow:hidden;background:#F5F6F2;color:var(--ink);position:relative;display:flex;flex-direction:column;font-size:15px;line-height:1.4}
 .vista{zoom:1.28;width:304.7px;height:659.4px;display:flex;flex-direction:column}
 .dito{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:rgba(255,255,255,.55);border:3px solid rgba(255,255,255,.95);
-  box-shadow:0 6px 20px rgba(0,0,0,.35);z-index:20;opacity:0;transition:left .7s cubic-bezier(.4,0,.2,1),top .7s cubic-bezier(.4,0,.2,1),opacity .3s,transform .15s;pointer-events:none}
+  box-shadow:0 6px 20px rgba(0,0,0,.35);z-index:20;opacity:0;transition:left 1.1s cubic-bezier(.4,0,.2,1),top 1.1s cubic-bezier(.4,0,.2,1),opacity .3s,transform .15s;pointer-events:none}
 .dito.giu{transform:scale(.78);background:rgba(214,179,106,.6)}
 /* schermate del telefono, come la pagina vera */
 .st-h{background:radial-gradient(90% 140% at 100% 0%,rgba(255,255,255,.12),transparent 60%),var(--blu);color:#fff;padding:50px 16px 12px;display:flex;align-items:center;gap:11px;flex:none}
@@ -162,10 +162,13 @@ function finto(){
 
 /* ---- gli strumenti dell'animazione ---- */
 let giro = 0, pausa = false, passo = 0;
+// ritmo: le azioni sul telefono vanno al 60% della velocità vera; a fine passaggio il testo resta
+// fermo il tempo per leggerlo con calma (circa 70 ms a lettera, almeno 6 secondi)
+const RITMO = 1.6, coda = p => Math.max(6000, p.x.length * 70);
 const FERMA = {};
 const attesa = ms => new Promise((ok, no) => {
   const g = giro; let fatti = 0;
-  const t = setInterval(() => { if(g !== giro){ clearInterval(t); no(FERMA); return; } if(!pausa && (fatti += 50) >= ms){ clearInterval(t); ok(); } }, 50);
+  const t = setInterval(() => { if(g !== giro){ clearInterval(t); no(FERMA); return; } if(!pausa && (fatti += 50) >= ms * RITMO){ clearInterval(t); ok(); } }, 50);
 });
 function schermo(corpo, piede=""){
   $("#dito").style.opacity = 0;   // a ogni schermata nuova il dito sparisce e ricompare dove tocca
@@ -291,9 +294,9 @@ async function vai(i){
   try{
     // la barra del passaggio si riempie mentre scorre
     const anima = () => { if(g !== giro) return; const ora = performance.now(); if(pausa) fermo += ora - ultimo; ultimo = ora;
-      barra.style.width = Math.min(100, (ora - t0 - fermo) / (PASSI[passo].d * 10)) + "%"; requestAnimationFrame(anima); };
+      barra.style.width = Math.min(100, (ora - t0 - fermo) / (((PASSI[passo].d - 1.4) * RITMO * 1000 + coda(PASSI[passo])) / 100)) + "%"; requestAnimationFrame(anima); };
     requestAnimationFrame(anima);
-    await PASSI[passo].fai(); await attesa(1400);
+    await PASSI[passo].fai(); await attesa(coda(PASSI[passo]) / RITMO);
     if(g === giro) vai(passo + 1);
   }catch(e){ if(e !== FERMA) throw e; }
 }
