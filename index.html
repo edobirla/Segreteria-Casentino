@@ -7313,7 +7313,7 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.18";
+const VERSIONE_APP="26.19";
 const AGGIORNATA_IL="8 ottobre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
@@ -7493,7 +7493,32 @@ async function controllaAggiornamento(){
     const prima = !!AGGIORNAMENTO;
     AGGIORNAMENTO = n && n.versione && confrontaVersioni(n.versione, VERSIONE_APP) > 0 ? n : null;
     if(prima !== !!AGGIORNAMENTO) disegna();
+    if(AGGIORNAMENTO) finestraAggiornamento();
   }catch(e){}
+}
+/* la finestra che avvisa dell'aggiornamento: una volta per versione e per apertura dell'app.
+   Se ci sono modifiche non ancora in un backup, propone anche il backup prima di aggiornare. */
+function finestraAggiornamento(){
+  const a = AGGIORNAMENTO; if(!a) return;
+  try{ if(sessionStorage.getItem("aggVisto")===a.versione) return; }catch(e){}
+  // prima si entra con la password; e non sopra un'altra finestra aperta
+  if(document.getElementById("porta") || document.querySelector(".mod")){ setTimeout(finestraAggiornamento, 1500); return; }
+  try{ sessionStorage.setItem("aggVisto", a.versione); }catch(e){}
+  const daSalvare = DB.impostazioni.daBackup && !(typeof soloPresenze==="function" && CLOUD_ATTIVO && CLOUD.io && soloPresenze());
+  const {el, chiudi} = modale({titolo:`C'è un aggiornamento: versione ${esc(a.versione)}`, corpo:`
+    <p style="margin:0 0 8px">Adesso hai la versione ${esc(VERSIONE_APP)}. Aggiornare non tocca i dati: restano tutti dove sono.</p>
+    ${(a.novita||[]).length?`<div class="lb" style="margin:10px 0 4px">Le novità</div><ul style="margin:0;padding-left:20px;line-height:1.5">${a.novita.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
+    ${daSalvare?`<div class="avv o" style="margin-top:14px">Ci sono <b>modifiche che non sono ancora in nessun backup</b>. Per sicurezza, fai il backup prima di aggiornare.</div>`:""}`,
+    azioni:[{testo:"Più tardi",fn:()=>{}},
+      ...(daSalvare?[{testo:"Fai backup",fn:()=>{ faiBackup().then(()=>{ chiudi(); try{ sessionStorage.removeItem("aggVisto"); }catch(e){} finestraAggiornamento(); }); return false; }}]:[]),
+      {testo:"Aggiorna",cls:"pri",destra:true,fn:d=>{ aggiornaOra(d.querySelector(".mod-f .pri")); return false; }}]});
+  return el;
+}
+async function aggiornaOra(b){
+  if(b) b.textContent = "Aggiorno…";
+  try{ const r = await navigator.serviceWorker?.getRegistration(); await r?.update(); }catch(err){}
+  try{ for(const k of await caches.keys()) await caches.delete(k); }catch(err){}
+  location.reload();
 }
 function bloccoAggiornamento(){
   if(!AGGIORNAMENTO) return "";
@@ -7503,13 +7528,7 @@ function bloccoAggiornamento(){
       ${(a.novita||[]).length?`<ul>${a.novita.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}</div>
     <button class="bt pri" data-aggiorna>Aggiorna</button></div>`;
 }
-document.addEventListener("click", async e=>{
-  if(!e.target.closest("[data-aggiorna]")) return;
-  e.target.closest("[data-aggiorna]").textContent = "Aggiorno…";
-  try{ const r = await navigator.serviceWorker?.getRegistration(); await r?.update(); }catch(err){}
-  try{ for(const k of await caches.keys()) await caches.delete(k); }catch(err){}
-  location.reload();
-});
+document.addEventListener("click", e=>{ const b = e.target.closest("[data-aggiorna]"); if(b) aggiornaOra(b); });
 addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") controllaAggiornamento(); });
 
 /* ==== CLOUD INIZIO ==== */

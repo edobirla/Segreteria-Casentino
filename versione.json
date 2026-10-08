@@ -1,8 +1,9 @@
 {
-  "versione": "26.18",
+  "versione": "26.19",
   "data": "ottobre 2026",
   "novita": [
-    "Tutorial animato «Come si vota dal telefono» da proiettare all'assemblea (link nella Guida).",
-    "Candidato unico: il «Sì» è verde come «Favorevole» e il «No» rosso come «Contrario»."
+    "Quando esce un aggiornamento compare una finestra con le novità e il pulsante «Aggiorna».",
+    "Se ci sono modifiche non ancora salvate, la stessa finestra propone «Fai backup» prima di aggiornare.",
+    "Tutorial animato del voto: telefono più grande, scheda bianca, ritmo più calmo e pulsante «Schermo intero»."
   ]
 }
