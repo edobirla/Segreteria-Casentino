@@ -17,11 +17,11 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#0B1638}
 body{font-family:var(--sans);color:#F4F1E8;-webkit-font-smoothing:antialiased}
-#palco{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:center;display:grid;grid-template-columns:620px 1fr;align-items:center;
+#palco{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:center;display:grid;grid-template-columns:720px 1fr;align-items:center;
   background:radial-gradient(60% 80% at 100% 0%,rgba(255,255,255,.07),transparent 60%),radial-gradient(50% 70% at 0% 100%,rgba(0,0,0,.3),transparent 70%),var(--notte)}
 /* ---- il racconto a destra ---- */
-.dx{padding:0 110px 0 30px;display:flex;flex-direction:column;gap:26px}
-.marca{display:flex;align-items:center;gap:16px;position:absolute;top:70px;left:650px}
+.dx{padding:0 100px 0 20px;display:flex;flex-direction:column;gap:26px}
+.marca{display:flex;align-items:center;gap:16px;position:absolute;top:70px;left:740px}
 .marca img{height:46px;filter:brightness(0) invert(1)}
 .marca b{font-family:var(--serif);font-size:24px;font-weight:600;display:block;line-height:1.1}
 .marca small{font-family:var(--serif);font-style:italic;font-size:17px;opacity:.65}
@@ -31,7 +31,7 @@ body{font-family:var(--sans);color:#F4F1E8;-webkit-font-smoothing:antialiased}
 .cambia{animation:entra .6s cubic-bezier(.2,.8,.2,1) both}
 .cambia.t2{animation-delay:.08s} .cambia.t3{animation-delay:.16s}
 @keyframes entra{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-.barre{position:absolute;left:650px;right:110px;bottom:84px;display:flex;gap:10px}
+.barre{position:absolute;left:740px;right:100px;bottom:84px;display:flex;gap:10px}
 .barre button{flex:1;height:6px;border:0;padding:0;border-radius:3px;background:rgba(255,255,255,.16);cursor:pointer;overflow:hidden;position:relative}
 .barre button i{position:absolute;inset:0;width:0;background:var(--o);border-radius:3px}
 .barre button.fatto i{width:100%}
@@ -40,19 +40,20 @@ body.mostra .comandi{opacity:1}
 .comandi button{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#F4F1E8;font:inherit;font-size:17px;padding:10px 16px;border-radius:10px;cursor:pointer}
 /* ---- il telefono ---- */
 .sx{display:grid;place-items:center;height:100%;position:relative}
-.tel{width:418px;height:872px;border-radius:64px;padding:14px;background:#05080F;box-shadow:0 0 0 2px #2A3354,0 40px 90px rgba(0,0,0,.55),inset 0 0 0 2px #151B2E;position:relative;transform:scale(.88)}
+.tel{width:418px;height:872px;border-radius:64px;padding:14px;background:#05080F;box-shadow:0 0 0 2px #2A3354,0 40px 90px rgba(0,0,0,.55),inset 0 0 0 2px #151B2E;position:relative;transform:scale(.98)}
 .tel::before{content:"";position:absolute;top:26px;left:50%;width:120px;height:34px;margin-left:-60px;border-radius:20px;background:#05080F;z-index:5}
 .sc{width:390px;height:844px;border-radius:50px;overflow:hidden;background:#F5F6F2;color:var(--ink);position:relative;display:flex;flex-direction:column;font-size:15px;line-height:1.4}
+.vista{zoom:1.28;width:304.7px;height:659.4px;display:flex;flex-direction:column}
 .dito{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:rgba(255,255,255,.55);border:3px solid rgba(255,255,255,.95);
   box-shadow:0 6px 20px rgba(0,0,0,.35);z-index:20;opacity:0;transition:left .7s cubic-bezier(.4,0,.2,1),top .7s cubic-bezier(.4,0,.2,1),opacity .3s,transform .15s;pointer-events:none}
 .dito.giu{transform:scale(.78);background:rgba(214,179,106,.6)}
 /* schermate del telefono, come la pagina vera */
-.st-h{background:radial-gradient(90% 140% at 100% 0%,rgba(255,255,255,.12),transparent 60%),var(--blu);color:#fff;padding:64px 18px 14px;display:flex;align-items:center;gap:11px;flex:none}
+.st-h{background:radial-gradient(90% 140% at 100% 0%,rgba(255,255,255,.12),transparent 60%),var(--blu);color:#fff;padding:50px 16px 12px;display:flex;align-items:center;gap:11px;flex:none}
 .st-h img{height:28px;filter:brightness(0) invert(1)}
 .st-h b{display:block;font-family:var(--serif);font-size:16px;font-weight:600;line-height:1.1}
 .st-h small{font-family:var(--serif);font-style:italic;font-size:13px;opacity:.75}
 .st-b{flex:1;padding:18px 16px;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
-.st-p{padding:12px 16px 34px;background:#fff;border-top:1px solid #E4E6E0;display:grid;gap:4px;flex:none}
+.st-p{padding:10px 14px 22px;background:#fff;border-top:1px solid #E4E6E0;display:grid;gap:4px;flex:none}
 .st-c{margin:auto 0;text-align:center;color:var(--ink2);display:flex;flex-direction:column;align-items:center;gap:8px}
 .st-c h4{font-family:var(--serif);font-size:24px;color:var(--ink);margin:4px 0 0;font-weight:600}
 .st-c p{margin:0;line-height:1.45}
@@ -167,7 +168,8 @@ const attesa = ms => new Promise((ok, no) => {
   const t = setInterval(() => { if(g !== giro){ clearInterval(t); no(FERMA); return; } if(!pausa && (fatti += 50) >= ms){ clearInterval(t); ok(); } }, 50);
 });
 function schermo(corpo, piede=""){
-  $("#sc").innerHTML = `<div class="dissolvi" style="display:flex;flex-direction:column;height:100%">${corpo}${piede?`<div class="st-p">${piede}</div>`:""}</div>`;
+  $("#dito").style.opacity = 0;   // a ogni schermata nuova il dito sparisce e ricompare dove tocca
+  $("#sc").innerHTML = `<div class="vista dissolvi">${corpo}${piede?`<div class="st-p">${piede}</div>`:""}</div>`;
 }
 async function scrivi(sel, testo, ms=110){
   const el = $(sel, $("#sc")); el.classList.add("att");
@@ -224,9 +226,19 @@ const PASSI = [
      $("#o1").classList.add("on"); $("#o1 i").innerHTML = IC.ok; $("#ok").disabled = false;
      await attesa(900); await tocca("#ok");
    }},
+  {t:"La scheda bianca", d:9, x:"Se non vuoi scegliere nessuno, tocca «Scheda bianca». Il telefono chiede conferma: la scheda bianca conta come voto, ma senza nessuna scelta, e poi non si cambia più.",
+   async fai(){
+     scheda("Acquisto degli innari nuovi", `<div class="st-o fav"><span class="n">Favorevole</span><i></i></div><div class="st-o con"><span class="n">Contrario</span><i></i></div>`);
+     await attesa(1300); await tocca(".st-bt.gh");
+     schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic">${IC.urna}</div><h4>Scheda bianca?</h4><p>Sei sicuro di voler lasciare la scheda in bianco? Non potrai più cambiarla.</p></div></div>`,
+       `<button class="st-bt" id="bok">Sì, lascia in bianco</button><button class="st-bt gh">Torna alla scheda</button>`);
+     await attesa(2200); await tocca("#bok");
+     schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.urna}</div><h4>Voto registrato</h4><p>Grazie, puoi posare il telefono.</p></div></div>`);
+     viaDito(); await attesa(1800);
+   }},
   {t:"Nelle elezioni", d:10, x:"Per una carica scegli un nome: puoi cercarlo scrivendo le prime lettere, poi conferma.",
    async fai(){
-     const nomi = ["Bassi Rita","Benedetti Carla","Fabbri Franco","Fabbri Paola","Ferri Samuele","Galli Matteo"];
+     const nomi = ["Bassi Rita","Benedetti Carla","Fabbri Franco","Fabbri Paola","Galli Matteo"];
      const iniz = n => n.split(" ").map(x=>x[0]).join("");
      scheda("Diaconessa", `<label class="st-cerca">${IC.cerca}<div class="st-in" id="q"></div></label>
        ${nomi.map((n,i)=>`<div class="st-o" id="n${i}"><div class="av">${iniz(n)}</div><span class="n">${n}</span><i></i></div>`).join("")}`);
