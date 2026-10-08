@@ -7312,8 +7312,8 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.16";
-const AGGIORNATA_IL="7 ottobre 2026";
+const VERSIONE_APP="26.17";
+const AGGIORNATA_IL="8 ottobre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
@@ -8453,7 +8453,7 @@ function votoBox(c){
          <a class="bt" href="${esc(indirizzoVoto("proiezione.html"))}" target="_blank" rel="noopener">Schermo di proiezione</a>
          <button class="bt gh dan" data-velimina style="margin-left:auto">Elimina questa votazione</button>`}</div>`;
 }
-const voTono = et => /^\s*favorevol/i.test(et) ? "fav" : RE_CONTRARI.test(et) ? "con" : "";
+const voTono = et => /^\s*(favorevol|s[iì]\s*$)/i.test(et) ? "fav" : RE_CONTRARI.test(et) ? "con" : "";
 
 /* ---- miniature delle foto, per i telefoni e lo schermo ---- */
 async function miniatura(m, lato=160){

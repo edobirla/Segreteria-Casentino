@@ -167,7 +167,7 @@ async function anonimo(auth){
 const iniz = n => String(n||"").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();
 const foto = (o, cls) => `<div class="${cls}">${o && o.foto ? `<img src="${o.foto}" alt="">` : esc(iniz(o && (o.nome || o.et)))}</div>`;
 // favorevole un po' verde, contrario un po' rosso
-const tono = et => /^\s*favorevol/i.test(et) ? "fav" : /^\s*(contrari|contrario|contrarie|contro|sfavorevoli|no)\s*$/i.test(et) ? "con" : "";
+const tono = et => /^\s*(favorevol|s[iì]\s*$)/i.test(et) ? "fav" : /^\s*(contrari|contrario|contrarie|contro|sfavorevoli|no)\s*$/i.test(et) ? "con" : "";
 const IC = {
   qr:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M18 18h3v3"/></svg>`,
   ok:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,

@@ -1,10 +1,8 @@
 {
-  "versione": "26.16",
+  "versione": "26.17",
   "data": "ottobre 2026",
   "novita": [
-    "«Usa questo dispositivo come schermo di proiezione» in Impostazioni → Accessi: il computer con l'app diventa lo schermo, senza comandi.",
-    "Si proietta solo quando lo decidi: «Proietta sullo schermo» e «Smetti di proiettare» nel riquadro dei telefoni.",
-    "Codice della riunione corto da scrivere a mano, «Manda il link» per il gruppo, app «Vota» con l'icona dell'urna.",
-    "Il telefono che ha già votato viene riconosciuto: l'app propone il membro dell'ultima volta."
+    "Candidato unico: sul telefono, sullo schermo e sull'iPad il «Sì» è verde come «Favorevole» e il «No» rosso come «Contrario».",
+    "Schermo di proiezione dal computer con l'app, solo quando lo decidi dall'iPad."
   ]
 }
