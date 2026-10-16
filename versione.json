@@ -1,7 +1,8 @@
 {
-  "versione": "26.20",
+  "versione": "26.21",
   "data": "ottobre 2026",
   "novita": [
-    "Il tutorial e lo schermo di proiezione si aprono dentro l'app, a tutto schermo, con il pulsante «Chiudi» per tornare indietro (sull'iPad prima non si poteva uscire)."
+    "Coniuge, padre e madre: nell'elenco non compaiono più i membri trasferiti o usciti.",
+    "Presenze del sabato: toccando un sabato dell'elenco la pagina resta ferma, invece di scendere un po' ogni volta."
   ]
 }

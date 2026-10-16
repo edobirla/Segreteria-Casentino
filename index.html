@@ -1457,11 +1457,12 @@ function disegna(){
   q.onfocus = ()=>{ if(CERCA.trim().length>1) mostraRisultati(); };
   if(CERCA.trim().length>1){ mostraRisultati(); }
   else { VISTE[ROTTA.vista](ROTTA.arg); }
+  // prima i grafici, poi la posizione: un grafico che cresce sopra spingerebbe la pagina in giù a ogni ridisegno
+  if(GRAFICI.length) montaGrafici();
   if(ROTTA.vista===vistaPrima && ROTTA.arg===argPrima){
     const ora = scorrevoli();
     if(ora.length===scrollPrima.length) ora.forEach((e,i)=>{ if(scrollPrima[i]) e.scrollTop=scrollPrima[i]; });
   }
-  if(GRAFICI.length) montaGrafici();
 }
 function testata(titolo, sotto, azioni){
   return `<div class="tb"><h4>${titolo}</h4>${sotto?`<span class="sub">${sotto}</span>`:""}${azioni||""}</div>`;
@@ -2827,9 +2828,9 @@ function vistaFamiglia(m){
   const sesso = m.sesso==="F" ? "F" : "M";
   return `
     <div class="fr">
-      ${sceltaMembro("Padre","padreId",m.padreId, DB.membri.filter(x=>x.id!==m.id&&x.sesso==="M"))}
-      ${sceltaMembro("Madre","madreId",m.madreId, DB.membri.filter(x=>x.id!==m.id&&x.sesso==="F"))}
-      ${sceltaMembro("Coniuge","__coniuge",m.coniugeId, DB.membri.filter(x=>x.id!==m.id))}
+      ${sceltaMembro("Padre","padreId",m.padreId, DB.membri.filter(x=>x.id!==m.id&&x.sesso==="M"&&(eDentro(x)||x.id===m.padreId)))}
+      ${sceltaMembro("Madre","madreId",m.madreId, DB.membri.filter(x=>x.id!==m.id&&x.sesso==="F"&&(eDentro(x)||x.id===m.madreId)))}
+      ${sceltaMembro("Coniuge","__coniuge",m.coniugeId, DB.membri.filter(x=>x.id!==m.id&&(eDentro(x)||x.id===m.coniugeId)))}
     </div>
     <div class="albero">
       ${(padre||madre)?`<div class="liv"><span class="liv-t">Genitori</span>
@@ -7336,8 +7337,8 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.20";
-const AGGIORNATA_IL="8 ottobre 2026";
+const VERSIONE_APP="26.21";
+const AGGIORNATA_IL="16 ottobre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
