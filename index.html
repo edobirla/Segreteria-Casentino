@@ -1030,10 +1030,14 @@ const usciti = ()=> DB.membri.filter(m=>!eDentro(m))
 /* dentro o fuori a una certa data: un'assemblea di marzo non ha fra gli assenti
    chi si è trasferito a giugno */
 function dentroAl(m,data){
-  const ev=eventiOrdinati(m).filter(e=>e.data&&e.data<=data);
-  if(!ev.length) return true;
+  const tutti=eventiOrdinati(m), ev=tutti.filter(e=>e.data&&e.data<=data);
+  if(!ev.length) return !tutti.some(e=>e.data && e.tipo in ENTRATE);   // è entrato dopo quella data
   return !(ev[ev.length-1].tipo in USCITE);
 }
+/* chi va elencato a una certa data: chi era membro allora, più chi risulta segnato.
+   Non chi è membro oggi: la storia non cambia quando qualcuno si trasferisce o rientra. */
+const membriAlGiorno = (data, segnati=[]) =>
+  DB.membri.filter(m=>(data?dentroAl(m,data):eDentro(m)) || segnati.includes(m.id)).sort(perNome);
 function primaEntrata(m){ return eventiOrdinati(m).find(e=>e.tipo in ENTRATE) || null; }
 function eta(m){ if(!m.nato) return null; const d=new Date(m.nato+"T12:00:00");
   const o=new Date(); let e=o.getFullYear()-d.getFullYear();
@@ -1194,7 +1198,8 @@ function normalizza(){
   if(!Array.isArray(DB.ospitiNoti)) DB.ospitiNoti=[];
   /* gli ospiti erano solo nomi: diventano schede con l'età all'incirca */
   DB.ospitiNoti=DB.ospitiNoti.map(o=>typeof o==="string"?{id:uid(),nome:o,nato:null,note:""}:o);
-  DB.ospitiNoti.forEach(o=>{ if(!o.id) o.id=uid(); if(o.nato===undefined) o.nato=null; });
+  DB.ospitiNoti.forEach(o=>{ if(!o.id) o.id=uid(); if(o.nato===undefined) o.nato=null; if(o.tolto===undefined) o.tolto=false; });
+  collegaOmonimi();
   const perNomeOsp = n => (DB.ospitiNoti.find(o=>o.nome===n)||{}).id || null;
   DB.sabati.forEach(s=>{ if(s.predicatore===undefined) s.predicatore=null; s.f=s.f||{}; s.osp=s.osp||{}; s.anon=s.anon||{};
     if(s.escluso===undefined) s.escluso=false;
@@ -1230,6 +1235,9 @@ function autotest(){
   v("torna dentro dopo il rientro", eDentro(finto)===true);
   finto.storico.push({tipo:"esclusione",data:"2025-06-01"});
   v("escluso → fuori", eDentro(finto)===false && statoMembro(finto).etichetta==="Esclusione");
+  v("fuori fra uscita e rientro", dentroAl(finto,"2023-01-01")===false && dentroAl(finto,"2021-01-01")===true && dentroAl(finto,"2024-06-01")===true);
+  v("prima di entrare non è dentro", dentroAl(finto,"2019-01-01")===false);
+  v("nomi uguali in ordine diverso", paroleNome("Rossi Mària")===paroleNome("Maria  ROSSI"));
   console.log(`autotest: ${ok.length} passati, ${ko.length} falliti`, ko.length?ko:"");
   return ko.length===0;
 }
@@ -2755,7 +2763,7 @@ function schedaMembro(m){
     const tot=presenzeMembro(m.id);
     const asTot=assembleeMembro(m.id);
     const soglia=num(DB.impostazioni.sogliaAssenze)||5;
-    const filaAssenze=(()=>{ let n=0; for(const s of sabatiOrdinati(true)){ if(presentiSabato(s).includes(m.id)) break; n++; } return n; })();
+    const filaAssenze=assenzeDiFila(m);
     const filaAss=(assenzeAssemblee(1).find(x=>x.m.id===m.id)||{n:0}).n;
     const trim=presenzeTrimestri(m.id, anno);
     corpo=`
@@ -2785,7 +2793,7 @@ function schedaMembro(m){
             <span class="lb" style="color:var(--ink2)">${q.t}° trimestre</span>
             <span style="font-family:var(--mono);font-size:12.3px;color:${q.quota>=70?"var(--verde)":"var(--ocra)"}">${q.presenze} su ${q.sabati.length}${q.quota===null?"":` · ${q.quota}%`}</span></div>
           <div style="display:flex;flex-wrap:wrap;gap:5px">${q.sabati.map(s=>{
-            const c=presentiSabato(s).includes(m.id);
+            const c=alSabato(s,m.id);
             return `<span class="pchip ${c?"si":"no"}" style="display:inline-flex;padding:3px 8px" title="${dataIT(s.data)}">
               <span class="nm" style="font-family:var(--mono);font-size:11.8px">${s.data.slice(8)}/${s.data.slice(5,7)}</span></span>`;}).join("")}</div>
         </div>`).join(""):'<div class="vuoto">Nessun sabato registrato in questo anno.</div>'}
@@ -3101,7 +3109,7 @@ function registraRientro(id){
       m.storico.push({id:uid(),tipo:$('[data-c="__t"]',d).value,data:$('[data-c="__d"]',d).value,
         officiante:"",luogo:"",chiesa:$('[data-c="__c"]',d).value,note:$('[data-c="__n"]',d).value,
         letteraId:null,allegati:[]});
-      salva(); disegna(); }}]});
+      collegaOmonimi(); salva(); disegna(); }}]});
 }
 function generaLettereTrasferimento(m, chiesa, data){
   const anno=new Date(data).getFullYear();
@@ -3726,7 +3734,7 @@ function editorVerbale(v){
   /* la lista dei presenti si spunta allo stesso modo dappertutto: in comitato ci sono
      i membri del comitato, in assemblea e alla riorganizzazione tutti i membri. */
   const elencoPresenza = isCom ? membriComitato
-    : attivi().sort(perNome).map(m=>({id:m.id, ruolo:(caricheAl(m.id, v.data)||[])[0]||""}));
+    : membriAlGiorno(v.data, v.presenti||[]).map(m=>({id:m.id, ruolo:(caricheAl(m.id, v.data)||[])[0]||""}));
   if(presCercaV!==v.id){ presCerca=""; presCercaV=v.id; }
   const qp=presCerca.trim().toLowerCase();
   const elencoFiltrato = qp ? elencoPresenza.filter(pm=>nomeMembro(pm.id).toLowerCase().includes(qp)) : elencoPresenza;
@@ -4305,7 +4313,7 @@ function letturaHTML(v){
   if(v.presenti.length){
     const PV=presenzeVerbale(v);
     const cera=id=>{ const s=PV.stato.get(id); return s?s.stato!=="assente":(v.presenti||[]).includes(id); };
-    const tuttiRif = isCom?comitato(v.data).map(i=>i.membroId):attivi().map(m=>m.id);
+    const tuttiRif = isCom?comitato(v.data).map(i=>i.membroId):membriAlGiorno(v.data, v.presenti).map(m=>m.id);
     const dentro=tuttiRif.filter(cera), ass=tuttiRif.filter(id=>!cera(id));
     const dice=id=>{ const s=PV.stato.get(id);
       return nomeMembro(id)+((v.telematici||[]).includes(id)?" (a distanza)":"")+(s&&s.stato==="parziale"?` (in parte${s.uscita?", fino alle "+s.uscita:""})`:""); };
@@ -4352,7 +4360,7 @@ function chiudiVerbale(v){
       v.preghieraChiusura=$('[data-c="__p"]',d).value;
       const u=$('[data-c="__u"]',d); v.presentiUscita = u ? num(u.value) : v.presenti.length;
       if(!v.cronologia.some(c=>c.testo==="Chiusura")) v.cronologia.push({ora:v.oraChiusura,testo:"Chiusura"});
-      v.stato="chiuso"; salva(); disegna(); }}]});
+      v.stato="chiuso"; if(CLOUD_ATTIVO) votoChiudiRiunione(v); salva(); disegna(); }}]});
 }
 
 /* ---------- il documento ---------- */
@@ -4406,8 +4414,9 @@ function fogliaVerbale(v, incl){
             ${pres.map(p=>voce(p.id,p.ruolo.toLowerCase())).join("")}
             ${righeOsp}
             ${ass.map(p=>`<span class="as"><i class="pt"></i>${esc(nomeMembro(p.id))} <em>assente</em></span>`).join("")}</div>`;
-        const dentroR=attivi().filter(m=>cera(m.id)).sort(perNome);
-        const assR=attivi().filter(m=>!cera(m.id));
+        const elencoR=membriAlGiorno(v.data, v.presenti);
+        const dentroR=elencoR.filter(m=>cera(m.id));
+        const assR=elencoR.filter(m=>!cera(m.id));
         /* i verbali vecchi registravano solo quanti erano presenti, non i nomi: in quel
            caso non ha senso stampare l'intera chiesa nella lista degli assenti. */
         const soloNumero = !dentroR.length && (v.presentiApertura || v.presentiUscita);
@@ -4498,6 +4507,7 @@ function annullaVerbale(v){
       const m=$('[data-c="__m"]',d).value.trim();
       if(!m){ alert("Il motivo dell'annullamento è obbligatorio."); return false; }
       v.annullato={data:$('[data-c="__d"]',d).value||oggiISO(), motivo:m};
+      if(CLOUD_ATTIVO) votoChiudiRiunione(v);
       salva(); disegna(); }}]});
 }
 /* firma: il segretario può usare quella salvata, il dirigente firma sempre a mano */
@@ -4749,15 +4759,16 @@ function spoglio(v,idx){
     const presenti=v.presenti||[];
     const soloQuesti = Array.isArray(giro.candidati) && giro.candidati.length ? new Set(giro.candidati) : null;
     const inGara = m => !soloQuesti || soloQuesti.has(m.id);
-    const dentro=attivi().filter(m=>presenti.includes(m.id) && inGara(m));
-    const fuori =attivi().filter(m=>!presenti.includes(m.id) && inGara(m));
+    const elencoGiro=membriAlGiorno(v.data, [...presenti, ...Object.keys(giro.voti)]);
+    const dentro=elencoGiro.filter(m=>presenti.includes(m.id) && inGara(m));
+    const fuori =elencoGiro.filter(m=>!presenti.includes(m.id) && inGara(m));
     const ord=(a,b)=>(giro.voti[b.id]||0)-(giro.voti[a.id]||0) || perNome(a,b);
     const modo=modoDi(e);
     const espressi=Object.values(giro.voti).reduce((a,b)=>a+b,0);
     const fuoriNome=nonAttribuite(modo,giro);
     const base=v.presentiUscita ?? v.presentiApertura ?? presenti.length ?? attivi().length;
     const magg=Math.floor(base/2)+1;
-    const top=attivi().filter(m=>giro.voti[m.id]).sort(ord).slice(0,3);
+    const top=elencoGiro.filter(m=>giro.voti[m.id]).sort(ord).slice(0,3);
     const schede = giro.schede ?? (Math.ceil(espressi/(e.quanti||1))+fuoriNome+(giro.no||0));
     const troppi = schede>base;
     const corpo=`
@@ -4822,7 +4833,7 @@ function spoglio(v,idx){
       if(soloQuesti&&soloQuesti.size===1){ unicoNonEletto(e, giro, ()=>{ g=e.giri.length-1; salva(); chiudi(); apri(); }); return; }
       /* nel secondo giro non ci sono più tutti: passa il più votato e si vota fra gli altri.
          Chi resta in gara lo scegli tu, spuntandolo. */
-      const conVoti=attivi().filter(m=>giro.voti[m.id]).sort(ord);
+      const conVoti=elencoGiro.filter(m=>giro.voti[m.id]).sort(ord);
       const pre=new Set(conVoti.slice(0,2).map(m=>m.id));
       modale({titolo:"Nuovo giro: chi resta in gara?",corpo:
         `<div class="avv n">Spunta i nomi che vanno al ballottaggio. <b>Chi ha più voti passa</b>: il ballottaggio si fa fra gli altri. Se non spunti nessuno il giro riparte con tutti i membri.</div>
@@ -4844,7 +4855,7 @@ function spoglio(v,idx){
     $("#rin",el).onclick=()=>registraRinuncia(v, e, ()=>{ chiudi(); apri(); });
     $("#elg",el).onclick=()=>{
       if(soloQuesti&&soloQuesti.size===1&&(giro.voti[[...soloQuesti][0]]||0)<=(giro.no||0)){ avvisa("Non eletto","I no sono almeno quanti i sì: il candidato non è eletto."); return; }
-      const scelti=attivi().filter(m=>giro.voti[m.id] && !e.rinunce.includes(m.id)).sort(ord).slice(0,e.quanti||1).map(m=>m.id);
+      const scelti=elencoGiro.filter(m=>giro.voti[m.id] && !e.rinunce.includes(m.id)).sort(ord).slice(0,e.quanti||1).map(m=>m.id);
       if(!scelti.length){ alert("Non ci sono voti."); return; }
       e.eletti=scelti; e.ora=oraOra();
       /* il segretario pro tempore, appena eletto, è chi verbalizza e chi firma */
@@ -5290,6 +5301,29 @@ function sabatoScorso(){ const d=new Date(); d.setDate(d.getDate()-((d.getDay()+
 /* ---- ospiti conosciuti: nome e anno di nascita all'incirca, così l'età si aggiorna da sola ---- */
 const ospite = id => (DB.ospitiNoti||[]).find(o=>o.id===id)||null;
 const nomeOspite = id => (ospite(id)||{}).nome || "";
+/* l'ospite che è (o è diventato) un membro: membroId = l'id; null = scollegato a mano; assente = da vedere.
+   Lo stesso nome e cognome, anche in ordine diverso, basta a collegarlo da solo. */
+const paroleNome = t => String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().split(/[^a-z]+/).filter(Boolean).sort().join(" ");
+function collegaOmonimi(){
+  (DB.ospitiNoti||[]).filter(o=>o.membroId===undefined).forEach(o=>{
+    const t=paroleNome(o.nome); if(!t.includes(" ")) return;
+    const c=DB.membri.filter(m=>paroleNome(nomeMembro(m))===t);
+    if(c.length===1) o.membroId=c[0].id;
+  });
+}
+/* c'era quel sabato: da membro o da ospite, senza distinzione */
+const alSabato = (s,id) => presentiSabato(s).includes(id) || ospitiSabato(s).some(o=>ospite(o)?.membroId===id);
+/* un sabato conta per un membro se allora era membro, o se quel giorno c'era */
+const sabatoConta = (s,m) => dentroAl(m,s.data) || alSabato(s,m.id);
+/* gli ospiti da proporre in una data: non i tolti, non chi quel giorno è già fra i membri. Chi è segnato resta. */
+const ospitiAlGiorno = (data, segnati=[]) => (DB.ospitiNoti||[]).filter(o=>{
+  const m=o.membroId && membro(o.membroId);
+  return segnati.includes(o.id) || (!o.tolto && !(m && dentroAl(m,data)));
+});
+/* i sabati saltati di fila, dall'ultimo indietro: la fila si ferma a quando non era membro */
+function assenzeDiFila(m){ let n=0;
+  for(const s of sabatiOrdinati(true)){ if(alSabato(s,m.id) || !dentroAl(m,s.data)) break; n++; }
+  return n; }
 function etaOspite(id, quando){
   const o=ospite(id); if(!o||!o.nato) return null;
   return Math.max(0, (+String(quando||oggiISO()).slice(0,4)) - o.nato);
@@ -5334,10 +5368,8 @@ function assenzeSabati(soglia){
   soglia = soglia || num(DB.impostazioni.sogliaAssenze) || 5;
   const S=sabatiOrdinati(true);
   if(!S.length) return [];
-  return attivi().map(m=>{ let n=0;
-    for(const s of S){ if(presentiSabato(s).includes(m.id)) break; n++; }
-    const ult=S.find(s=>presentiSabato(s).includes(m.id));
-    return {m, n, ultimo: ult?ult.data:null};
+  return attivi().map(m=>{ const ult=S.find(s=>alSabato(s,m.id));
+    return {m, n:assenzeDiFila(m), ultimo: ult?ult.data:null};
   }).filter(x=>x.n>=soglia).sort((a,b)=>b.n-a.n || perNome(a.m,b.m));
 }
 function mediaSabati(quanti=8){
@@ -5496,14 +5528,17 @@ const serieAssemblee = periodo => DB.verbali
       extra:`${mm} membri su ${iscritti}${os?` e ${os} ospiti`:""}`}; });
 /* quante volte c'è stato un membro: serve alla sua scheda e alla Dashboard */
 function presenzeMembro(id, anno){
-  const S=DB.sabati.filter(s=>sabatoNormale(s) && (!anno || s.data.startsWith(String(anno))));
-  const p=S.filter(s=>presentiSabato(s).includes(id));
-  const ult=sabatiOrdinati(true).find(s=>presentiSabato(s).includes(id));
+  const m=membro(id);
+  const S=DB.sabati.filter(s=>sabatoNormale(s) && (!anno || s.data.startsWith(String(anno))) && sabatoConta(s,m));
+  const p=S.filter(s=>alSabato(s,id));
+  const ult=sabatiOrdinati(true).find(s=>alSabato(s,id));
   return {sabati:S.length, presenze:p.length, ultimo:ult?ult.data:null,
     quota:S.length?Math.round(100*p.length/S.length):null};
 }
 function assembleeMembro(id, anno){
-  const A=DB.verbali.filter(v=>v.tipo==="raduno"&&v.iniziato&&!v.annullato&&(!anno||v.anno===+anno));
+  const m=membro(id);
+  const A=DB.verbali.filter(v=>v.tipo==="raduno"&&v.iniziato&&!v.annullato&&(!anno||v.anno===+anno)
+    &&(!v.data||dentroAl(m,v.data)||eraPresente(v,id)));
   const p=A.filter(v=>eraPresente(v,id)).length;
   return {quante:A.length, presente:p, quota:A.length?Math.round(100*p/A.length):null};
 }
@@ -5517,7 +5552,7 @@ function assenzeAssemblee(soglia){
     .sort((a,b)=>b.data.localeCompare(a.data));
   if(A.length<soglia) return [];
   return attivi().map(m=>{ let n=0;
-    for(const v of A){ if(eraPresente(v,m.id)) break; n++; }
+    for(const v of A){ if(eraPresente(v,m.id) || !dentroAl(m,v.data)) break; n++; }
     const ult=A.find(v=>eraPresente(v,m.id));
     return {m, n, ultima: ult?ult.data:null};
   }).filter(x=>x.n>=soglia).sort((a,b)=>b.n-a.n || perNome(a.m,b.m));
@@ -5526,9 +5561,9 @@ function assenzeAssemblee(soglia){
 function presenzeTrimestri(id, anno){
   return [1,2,3,4].map(t=>{
     const da=`${anno}-${String((t-1)*3+1).padStart(2,"0")}-01`, a=anno+FINE_TRIM[t];
-    const S=DB.sabati.filter(s=>sabatoNormale(s)&&s.data>=da&&s.data<=a)
+    const S=DB.sabati.filter(s=>sabatoNormale(s)&&s.data>=da&&s.data<=a&&sabatoConta(s,membro(id)))
       .sort((x,y)=>x.data.localeCompare(y.data));
-    const p=S.filter(s=>presentiSabato(s).includes(id));
+    const p=S.filter(s=>alSabato(s,id));
     return {t, sabati:S, presenze:p.length, quota:S.length?Math.round(100*p.length/S.length):null};
   }).filter(x=>x.sabati.length);
 }
@@ -5685,10 +5720,10 @@ function elencoProgrammiExtra(){
 function segnaProgrammaExtra(){
   const p=programmaExtra(extraProgId), r=occorrenzaDi(extraProgId,extraData);
   if(!p||!r){ sabModo="extra"; return elencoProgrammiExtra(); }
-  const L=attivi().sort(perNome);
+  const L=membriAlGiorno(r.data, r.membri);
   const q=sabCerca.trim().toLowerCase();
   const vis=q?L.filter(m=>nomeMembro(m).toLowerCase().includes(q)):L;
-  const noti=(DB.ospitiNoti||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome,"it"));
+  const noti=ospitiAlGiorno(r.data, r.osp).sort((a,b)=>a.nome.localeCompare(b.nome,"it"));
   schermo(testata(p.nome, `${dataLunga(r.data)} — ${r.membri.length+r.osp.length} presenti`,
     `<button class="bt psh" data-indietro>← ${esc(p.nome)}</button>`) +
   `<div class="cn"><div class="cols" style="grid-template-columns:1.5fr 1fr;flex:1">
@@ -5730,10 +5765,10 @@ function segnaProgrammaExtra(){
    Ripetere gli stessi venti nomi quattro volte non si leggeva; così si vede
    a colpo d'occhio chi c'era tutta la mattina e chi è arrivato dopo. */
 function dettaglioSabato(s){
-  const tot=attivi().length;
   const pres=presentiSabato(s);
-  const dentro=attivi().filter(m=>pres.includes(m.id)).sort(perNome);
-  const fuori=attivi().filter(m=>!pres.includes(m.id)).sort(perNome);
+  const elenco=membriAlGiorno(s.data, pres);
+  const dentro=elenco.filter(m=>pres.includes(m.id));
+  const fuori=elenco.filter(m=>!alSabato(s,m.id));
   const ospPres=[...new Set(FUNZIONI.flatMap(([k])=>s.osp[k]||[]))];
   const pallino=(si,cls)=>`<span class="pt${si?(cls?" "+cls:""):" no"}"></span>`;
   const riga=(nome,tocca,cls,extra,ore)=>`<tr${cls?` class="${cls}"`:""}>
@@ -5773,14 +5808,14 @@ function dettaglioSabato(s){
 /* ---- la schermata in cui si segna, quella che si usa mentre la gente entra ---- */
 function segnaSabato(){
   let s=sabatoDi(sabData);
-  const L=attivi().sort(perNome);
+  const L=membriAlGiorno(sabData, s?FUNZIONI.flatMap(([k])=>s.f[k]||[]):[]);
   const q=sabCerca.trim().toLowerCase();
   const vis = q ? L.filter(m=>nomeMembro(m).toLowerCase().includes(q)) : L;
   const dentro = k => (s && s.f[k]) || [];
   const prima = FUNZIONI.findIndex(([k])=>k===sabFunz)-1;
   const daCopiare = prima>=0 ? FUNZIONI[prima] : null;
   const qo=sabOspCerca.trim().toLowerCase();
-  const noti = (DB.ospitiNoti||[]).filter(o=>!qo||o.nome.toLowerCase().includes(qo))
+  const noti = ospitiAlGiorno(sabData, s?FUNZIONI.flatMap(([k])=>s.osp[k]||[]):[]).filter(o=>!qo||o.nome.toLowerCase().includes(qo))
     .sort((a,b)=>a.nome.localeCompare(b.nome,"it"));
 
   schermo(testata("Sto segnando le presenze",
@@ -5932,21 +5967,24 @@ function nuovoOspite(dopo){
       const e=$('[data-c="__e"]',d).value;
       let o=(DB.ospitiNoti||[]).find(x=>x.nome.toLowerCase()===nome.toLowerCase());
       if(!o){ o={id:uid(), nome, nato: e?new Date().getFullYear()-num(e):null, note:""}; DB.ospitiNoti.push(o); }
-      else if(e && !o.nato) o.nato=new Date().getFullYear()-num(e);
-      salva(); if(dopo) dopo(o); }}]});
+      else { o.tolto=false; if(e && !o.nato) o.nato=new Date().getFullYear()-num(e); }
+      collegaOmonimi(); salva(); if(dopo) dopo(o); }}]});
 }
 function modificaOspite(id){
   const o=ospite(id); if(!o) return;
   const e=o.nato?(new Date().getFullYear()-o.nato):"";
   modale({titolo:esc(o.nome),corpo:
     `<div class="fr">${campo("Nome","__n",o.nome)}${campo("Età all'incirca","__e",e,"number",'min="0" max="120"')}</div>
-     ${campo("Nota","__q",o.note||"","text",'placeholder="parente di…, viene con…"')}`,
+     ${campo("Nota","__q",o.note||"","text",'placeholder="parente di…, viene con…"')}
+     ${sceltaMembro("È anche un membro","__m",o.membroId||"",DB.membri)}
+     <div class="avv n">Se è anche un membro, i sabati in cui è venuto da ospite contano nella sua scheda.</div>`,
     azioni:[{testo:"Annulla",fn:()=>{}},{testo:"Salva",cls:"pri",destra:true,fn:(d)=>{
       const nome=$('[data-c="__n"]',d).value.trim();
       if(!nome){ alert("Serve il nome."); return false; }
       const et=$('[data-c="__e"]',d).value;
       o.nome=nome; o.nato = et? new Date().getFullYear()-num(et) : null;
       o.note=$('[data-c="__q"]',d).value.trim();
+      o.membroId=$('[data-c="__m"]',d).value||null;
       salva(); disegna(); }}]});
 }
 function chiediSabato(){
@@ -5987,13 +6025,13 @@ function esportaPresenze(){
 }
 function righePresenze(anno,trim){
   const S=sabatiDelPeriodo(anno,trim||0);
-  const L=attivi().sort(perNome);
+  const L=DB.membri.filter(m=>S.some(s=>sabatoConta(s,m))).sort(perNome);
   const r=[["Membro",...S.map(s=>dataBreve(s.data)),"Presenze","Su"]];
   const validi=S.filter(sabatoNormale);
   L.forEach(m=>{
-    const celle=S.map(s=>!sabatoNormale(s)?"—":(presentiSabato(s).includes(m.id)?"X":""));
-    const n=validi.filter(s=>presentiSabato(s).includes(m.id)).length;
-    r.push([nomeMembro(m),...celle,n,validi.length]);
+    const celle=S.map(s=>!sabatoNormale(s)||!sabatoConta(s,m)?"—":(alSabato(s,m.id)?"X":""));
+    const n=validi.filter(s=>alSabato(s,m.id)).length;
+    r.push([nomeMembro(m),...celle,n,validi.filter(s=>sabatoConta(s,m)).length]);
   });
   r.push([]);
   r.push(["Membri presenti",...S.map(s=>sabatoNormale(s)?presentiSabato(s).length:"—")]);
@@ -6003,19 +6041,19 @@ function righePresenze(anno,trim){
   return r;
 }
 function fogliaPresenze(anno,trim){
-  const L=attivi().sort(perNome);
   const trims = trim ? [trim] : [1,2,3,4];
   const blocchi = trims.map(t=>{
     const S=sabatiDelPeriodo(anno,t);
     if(!S.length) return "";
     const validi=S.filter(sabatoNormale);
+    const L=DB.membri.filter(m=>S.some(s=>sabatoConta(s,m))).sort(perNome);
     const cellW = Math.max(5, Math.min(9, Math.floor(70/Math.max(1,S.length))));
     return `<div class="catt">${t}° trimestre ${anno} &nbsp;·&nbsp; ${validi.length} sabat${validi.length===1?"o":"i"} contat${validi.length===1?"o":"i"}${S.length>validi.length?` (${S.length-validi.length} non contat${S.length-validi.length===1?"o":"i"})`:""}</div>
     <table class="inv reg"><colgroup><col style="width:${100-cellW*S.length-7}%">${S.map(()=>`<col style="width:${cellW}%">`).join("")}<col style="width:7%"></colgroup>
       <tr><th>Membro</th>${S.map(s=>`<th class="n"><b>${s.data.slice(8)}</b><i>${s.data.slice(5,7)}</i></th>`).join("")}<th class="n">Tot.</th></tr>
-      ${L.map(m=>{ const n=validi.filter(s=>presentiSabato(s).includes(m.id)).length;
+      ${L.map(m=>{ const n=validi.filter(s=>alSabato(s,m.id)).length;
         return `<tr><td>${esc(nomeMembro(m))}</td>
-          ${S.map(s=>`<td class="n">${!sabatoNormale(s)?'<span class="vd">·</span>':(presentiSabato(s).includes(m.id)?"●":'<span class="vd">○</span>')}</td>`).join("")}
+          ${S.map(s=>`<td class="n">${!sabatoNormale(s)||!sabatoConta(s,m)?'<span class="vd">·</span>':(alSabato(s,m.id)?"●":'<span class="vd">○</span>')}</td>`).join("")}
           <td class="n"><b>${n}</b></td></tr>`;}).join("")}
       <tr class="sub"><td>Membri presenti</td>${S.map(s=>`<td class="n">${sabatoNormale(s)?presentiSabato(s).length:"—"}</td>`).join("")}
         <td class="n">${validi.length?Math.round(validi.reduce((a,s)=>a+presentiSabato(s).length,0)/validi.length):"—"}</td></tr>
@@ -6030,7 +6068,7 @@ function fogliaPresenze(anno,trim){
     <p class="st">${esc(DB.impostazioni.chiesa)} · ${trim?`${trim}° trimestre ${anno}`:`anno ${anno}`}</p>
     <div class="bn">
       <div><span class="l">Sabati</span><p>${tutti.length}</p></div>
-      <div><span class="l">Membri</span><p>${L.length}</p></div>
+      <div><span class="l">Membri</span><p>${DB.membri.filter(m=>tutti.some(s=>sabatoConta(s,m))).length}</p></div>
       <div><span class="l">Media presenti</span><p>${tutti.length?Math.round(tutti.reduce((a,s)=>a+presentiSabato(s).length,0)/tutti.length):"—"}</p></div>
       <div><span class="l">Media ospiti</span><p>${tutti.length?Math.round(tutti.reduce((a,s)=>a+ospitiSabato(s).length+anonSabato(s),0)/tutti.length):"—"}</p></div>
     </div>
@@ -6890,7 +6928,7 @@ const GUIDA=[
   ${did(1,"Alla fine le schede arrivano tutte insieme e l'iPad le conta. L'esito compare sull'iPad, sullo schermo e sui telefoni.")}
   ${did(2,"Come sempre, <b>a verbale non va niente</b> finché non tocchi tu l'esito in fondo alla finestra. Alla riorganizzazione invece tocchi <b>Dichiara eletto</b>, oppure fai un nuovo giro o il ballottaggio.")}
   ${foto("proiezioneRisultato","Il risultato sullo schermo")}
-  <p><b>Perché è segreto.</b> Per ogni giro l'iPad crea una chiave che esiste solo nella sua memoria. Il telefono chiude la scheda con quella chiave e la tiene per sé; la manda solo quando hai chiuso la votazione, insieme a quelle degli altri, con un'identità nuova e anonima e dopo un'attesa a caso. Online quindi si vede soltanto <b>chi ha votato</b>, e a parte delle schede chiuse e tutte uguali, che solo l'iPad può aprire, tutte insieme. Per questo, durante il voto, <b>tieni aperta l'app sull'iPad</b>: se la chiudi la chiave sparisce e quel giro si ripete.</p>`},
+  <p><b>Perché è segreto.</b> Per ogni giro l'iPad crea una chiave che esiste solo nella sua memoria. Il telefono chiude la scheda con quella chiave e la manda subito, con un'identità nuova e anonima: così arriva anche se poi il telefono si spegne. Online quindi si vede soltanto <b>chi ha votato</b>, e a parte delle schede chiuse e tutte uguali, che solo l'iPad può aprire, tutte insieme, quando tocchi «Fine votazione». Per questo, durante il voto, <b>tieni aperta l'app sull'iPad</b>: se la chiudi la chiave sparisce e quel giro si ripete.</p>`},
 
  {g:"I verbali",t:"Le decisioni con una scadenza",c:()=>`
   <p>Quando una decisione affida un compito a qualcuno, mettici una scadenza: <b>+ Da fare entro il…</b>, sotto il testo della decisione.</p>
@@ -7337,8 +7375,8 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.21";
-const AGGIORNATA_IL="16 ottobre 2026";
+const VERSIONE_APP="26.22";
+const AGGIORNATA_IL="6 novembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
@@ -7400,12 +7438,12 @@ VISTE.impostazioni=async ()=>{
             e l'app conta quelli presenti ad almeno questa percentuale dei sabati del trimestre — i sabati senza programma non contano.</div>
         </div></div>
       <div class="pn gro"><div class="pn-h"><span class="lb">Ospiti conosciuti</span>
-        <span class="cp psh">${(DB.ospitiNoti||[]).length}</span>
+        <span class="cp psh">${(DB.ospitiNoti||[]).filter(o=>!o.tolto).length}</span>
         <button class="bt sm" data-ospnew>+ Ospite</button></div>
-        <div class="pn-b t0">${(DB.ospitiNoti||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome,"it")).map(o=>{
+        <div class="pn-b t0">${(DB.ospitiNoti||[]).filter(o=>!o.tolto).sort((a,b)=>a.nome.localeCompare(b.nome,"it")).map(o=>{
           const e=o.nato?(new Date().getFullYear()-o.nato):null;
           return `<div class="rw"><div class="g"><div class="t">${esc(o.nome)}</div>
-            <div class="s">${e===null?"età non indicata":"circa "+e+" anni"}${o.note?" · "+esc(o.note):""}</div></div>
+            <div class="s">${e===null?"età non indicata":"circa "+e+" anni"}${o.note?" · "+esc(o.note):""}${membro(o.membroId)?" · è il membro "+esc(nomeMembro(o.membroId)):""}</div></div>
             <button class="bt sm" data-osped="${o.id}">Modifica</button>
             <button class="bt sm dan" data-ospdel="${o.id}">Togli</button></div>`;}).join("")
           ||'<div class="vuoto">Nessun ospite in elenco. Si aggiungono dal sabato, mentre la gente entra.</div>'}</div>
@@ -7473,7 +7511,7 @@ VISTE.impostazioni=async ()=>{
   $$("[data-osped]").forEach(b=>b.onclick=()=>modificaOspite(b.dataset.osped));
   $$("[data-ospdel]").forEach(b=>b.onclick=()=>{ const o=ospite(b.dataset.ospdel);
     conferma(`Tolgo <b>${esc(o.nome)}</b> dall'elenco degli ospiti? I sabati già segnati restano come sono.`,()=>{
-      DB.ospitiNoti=DB.ospitiNoti.filter(x=>x.id!==o.id); salva(); disegna(); }); });
+      o.tolto=true; salva(); disegna(); }); });   // resta nei dati: i sabati passati lo chiamano per nome
   $("[data-recimg]")?.addEventListener("click", recuperaImmagini);
   $("[data-cart]").onclick=()=>{ if(!cartelleSiPuo())
       avvisa("Non qui","Questo browser non sa scegliere una cartella. Su Mac usa Chrome; su iPad il backup si scarica e lo salvi tu in File.");
@@ -8173,9 +8211,9 @@ async function riempiAccessi(){
       ()=>passaSegreteria(c.segretario).catch(e=>avvisa("Non è andata", esc(e.message)))));
     $("[data-passadir]") && ($("[data-passadir]").onclick = ()=>cambiaDirigente(c.dirigente).then(riempiAccessi, e=>avvisa("Non è andata", esc(e.message))));
     $("#accessiLista").innerHTML = righe.map(a=>{
-      const io = a.slug===CLOUD.io.slug, carica = a.carica && a.carica!=="segretario" ? ` · ${a.carica}` : "";
-      return `<div class="rw"><div class="g"><div class="t">${esc(a.nome)}${io?" <span class='cp'>tu</span>":""}</div>
-        <div class="s">${a.dispositivo?"dispositivo · ":""}${a.uid?"entrato almeno una volta":`primo accesso non ancora fatto · codice <b class="cl-cod">${esc(codici[a.slug]||"?")}</b>`}${esc(carica)}</div></div>
+      const io = a.slug===CLOUD.io.slug, carica = a.carica && a.carica!=="segretario" ? a.carica : "";
+      return `<div class="rw" style="flex-wrap:wrap"><div class="g" style="flex-basis:220px"><div class="t">${esc(a.nome)}${io?" <span class='cp'>tu</span>":""}</div>
+        <div class="s" style="white-space:normal">${[a.uid?"":`Codice <b class="cl-cod" style="font-size:15px">${esc(codici[a.slug]||"?")}</b>`, a.dispositivo?"dispositivo":"", esc(carica), a.uid?"già entrato":""].filter(Boolean).join(" · ")}</div></div>
         ${io?"":`<select class="i" data-accruolo="${a.slug}" style="width:auto">
           ${[["presenze","Solo presenze"],["lettura","Lettura"],["lettura-presenze","Lettura e presenze"],["modifica","Modifica"]].map(([v,t])=>`<option value="${v}" ${a.ruolo===v?"selected":""}>${t}</option>`).join("")}</select>
         <button class="bt sm" data-accazzera="${a.slug}">Azzera password</button><button class="bt sm dan" data-acctogli="${a.slug}">Togli</button>`}</div>`;
@@ -8210,7 +8248,7 @@ function cambiaMiaPassword(){
    Ogni riunione aperta ha una «sessione» online (sessioni/{codice}): i telefoni ci si collegano col QR,
    il segretario li riconosce e li collega alla scheda del membro. Per ogni giro di voto l'iPad crea una
    coppia di chiavi: la pubblica va ai telefoni, la privata resta solo nella memoria dell'iPad e sparisce
-   dopo lo spoglio. Le schede arrivano cifrate e senza nome, tutte insieme a votazione chiusa. */
+   dopo lo spoglio. Le schede arrivano cifrate e senza nome appena votato; si leggono tutte insieme a votazione chiusa. */
 if(CLOUD_ATTIVO) MODI.push(["telefoni","Dai telefoni, voto segreto"]);
 const SITO_PUBBLICO = "https://edobirla.github.io/Segreteria-Casentino/";
 const VOTO = {s:null, v:null, sess:null, tel:{}, votati:{}, urna:[], priv:null, ctx:null, chiave:null, giro:0,
@@ -8264,7 +8302,7 @@ const votoSenzaTelefono = () => (VOTO.v?.presenti||[]).filter(id=>!votoCollegati
 
 /* ---- la sessione della riunione ---- */
 function votoSessione(v){
-  if(!votoPossibile() || !v.iniziato || v.chiuso) return;
+  if(!votoPossibile() || !v.iniziato || ["chiuso","firmato"].includes(v.stato)) return;
   if(VOTO.v===v && VOTO.s===v.sessioneVoto && VOTO.ascolti.length) return;
   VOTO.ascolti.forEach(f=>f()); VOTO.ascolti = []; VOTO.v = v;
   if(!v.sessioneVoto){
@@ -8276,11 +8314,22 @@ function votoSessione(v){
   VOTO.s = v.sessioneVoto;
   // quale riunione si sta proiettando: per il pulsante «Proietta / Smetti di proiettare»
   if(!VOTO.ascoltoProiez) VOTO.ascoltoProiez = FB.onSnapshot(D("config","proiezione"), s=>{ VOTO.proiettata = s.data()?.sessione || null; votoAggiorna(); }, ()=>{});
-  VOTO.ascolti.push(FB.onSnapshot(D("sessioni", VOTO.s), s=>{ VOTO.sess = s.data()||null; votoAggiorna(); }, ()=>{}));
+  VOTO.ascolti.push(FB.onSnapshot(D("sessioni", VOTO.s), s=>{ VOTO.sess = s.data()||null;
+    if(VOTO.sess?.stato==="chiusa") FB.updateDoc(s.ref, {stato:"attesa"}).catch(()=>{});   // verbale riaperto: i telefoni possono tornare
+    votoAggiorna(); }, ()=>{}));
   VOTO.ascolti.push(FB.onSnapshot(FB.collection(CLOUD.fs, "sessioni", VOTO.s, "telefoni"), q=>{
     VOTO.tel = Object.fromEntries(q.docs.map(d=>[d.id, d.data()])); votoAggiorna(true); }, ()=>{}));
   VOTO.ascolti.push(FB.onSnapshot(FB.collection(CLOUD.fs, "sessioni", VOTO.s, "votati"), q=>{
     VOTO.votati = Object.fromEntries(q.docs.map(d=>[d.id, d.data()])); votoAggiorna(); }, ()=>{}));
+}
+/* riunione finita: i telefoni tornano alla schermata principale e lo schermo al logo */
+function votoChiudiRiunione(v){
+  if(!CLOUD_ATTIVO || !CLOUD.fs || !puoScrivere() || !v.sessioneVoto) return;
+  if(VOTO.proiettata===v.sessioneVoto) votoProietta(false);
+  FB.updateDoc(D("sessioni", v.sessioneVoto), {stato:"chiusa", domanda:null, chiave:null, risultato:null}).catch(e=>console.warn(e));
+  if(VOTO.s!==v.sessioneVoto) return;
+  VOTO.ascolti.forEach(f=>f());
+  Object.assign(VOTO, {ascolti:[], s:null, v:null, sess:null, tel:{}, votati:{}});
 }
 const titoloVoto = v => `${v.tipo==="comitato"?"Comitato":v.tipo==="raduno"?"Assemblea dei membri":"Riorganizzazione"}${v.numero?" n. "+v.numero:""}`;
 // chi esce dalla riunione esce anche dal voto; chi rientra torna a poter votare
@@ -8540,6 +8589,7 @@ async function votoFine(){
   VOTO.ascoltoUrna?.();
   VOTO.ascoltoUrna = FB.onSnapshot(FB.collection(CLOUD.fs, "sessioni", VOTO.s, "urna"), q=>{
     VOTO.urna = q.docs.filter(d=>d.data().giro===VOTO.giro).map(d=>({ref:d.ref, ...d.data()}));
+    q.docs.filter(d=>d.data().giro<VOTO.giro).forEach(d=>FB.deleteDoc(d.ref).catch(()=>{}));   // giri interrotti: la loro chiave non esiste più
     const attese = Object.values(VOTO.votati).filter(x=>x.giro===VOTO.giro).length;
     if(VOTO.urna.length > attese) VOTO.troppe = true;
     else if(VOTO.urna.length === attese && attese) votoConta();
