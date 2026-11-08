@@ -91,6 +91,8 @@ body{background:#F5F6F2;color:var(--ink);font-family:var(--sans);font-size:15px;
 .st-rr .fav i b{background:var(--verde)} .st-rr .con i b{background:var(--timbro)}
 .st-rr .bianca span,.st-rr .bianca em{color:var(--ink3);font-style:italic}
 .st-rr em{font-style:normal;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.st-resta{margin-top:6px;padding:16px;border-radius:14px;background:var(--timbro-t);color:var(--timbro);font-size:15px;line-height:1.4}
+.st-resta b{display:block;font-family:var(--serif);font-size:26px;line-height:1.15;font-weight:600;margin-bottom:8px}
 .st-err{padding:10px 12px;border-radius:10px;background:var(--timbro-t);color:var(--timbro);font-size:14px}
 </style>
 </head>
@@ -192,13 +194,13 @@ const conBianche = (r, righe) => r.bianche ? [...righe, {et:"Schede bianche", v:
 <script>
 "use strict";
 /* Il telefono di chi vota. Si collega con un'identità anonima; il segretario lo riconosce dal nome
-   e lo collega alla sua scheda. La scheda votata si cifra qui e parte subito, da un'identità
-   anonima nuova: così non si lega a chi l'ha mandata, e arriva anche se poi il telefono si chiude.
-   L'iPad può leggere l'urna solo a votazione chiusa. */
+   e lo collega alla sua scheda. La scheda votata si cifra qui e parte solo a votazione chiusa,
+   insieme a quelle degli altri e da un'identità anonima nuova: così non si lega a chi l'ha mandata.
+   Per questo la pagina deve restare aperta; se si esce, riaprendola la scheda riparte. */
 // solo nelle prove sul Mac: ?t=1, ?t=2… fanno finta di essere telefoni diversi nello stesso browser
 const {fs, auth} = collega(EMULATORE && new URLSearchParams(location.search).get("t") ? "tel" + new URLSearchParams(location.search).get("t") : undefined);
 let URNA = null;                              // seconda identità, solo per mandare la scheda
-let io = null, sess = null, tel = undefined, votato = undefined, scelta = [], cerca = "", bianca = false, riprova = false, invio = false, votando = false, fallita = 0;
+let io = null, sess = null, tel = undefined, votato = undefined, scelta = [], cerca = "", bianca = false, riprova = false, invio = false, votando = false, sveglia = null;
 const chiavePendente = g => `scheda:${CODICE}:${io?.uid}:${g}`;   // legata a questo telefono e a questo giro
 const pendente = g => { try{ return JSON.parse(localStorage.getItem(chiavePendente(g))); }catch(e){ return null; } };
 
@@ -222,24 +224,30 @@ async function vota(sc){
   }catch(e){ localStorage.removeItem(chiavePendente(g)); alert("Il voto non è partito: controlla la connessione e riprova."); }
   votando = false; disegna();
 }
-// appena «ho votato» è scritto, la scheda parte dopo un'attesa a caso da un'identità anonima nuova.
-// Se non riesce (senza rete) resta qui e riparte quando si riapre la pagina o a votazione chiusa.
+// a votazione chiusa la scheda parte, dopo un'attesa a caso, da un'identità anonima nuova
 async function mandaScheda(){
   const p = pendente(sess.giro);
   if(!p || invio || votando || votato?.giro!==p.giro) return;
   invio = true;
   try{
-    await new Promise(r => setTimeout(r, 200 + Math.random()*1000));
+    await new Promise(r => setTimeout(r, 300 + Math.random()*2200));
     if(!URNA) URNA = collega("urna", FB.inMemoryPersistence);
     if(!URNA.auth.currentUser) await FB.signInAnonymously(URNA.auth);
     await FB.setDoc(FB.doc(FB.collection(URNA.fs, "sessioni", CODICE, "urna")), p);
     localStorage.removeItem(chiavePendente(p.giro));
-  }catch(e){ console.warn(e); fallita = p.giro; }
+  }catch(e){ console.warn(e); }
   invio = false; disegna();
 }
 
+// con una scheda ancora da mandare lo schermo non si spegne da solo (dove il browser lo permette)
+async function tieniAcceso(){
+  const serve = sess && ["voto","spoglio"].includes(sess.stato) && pendente(sess.giro) && !document.hidden;
+  if(!serve){ sveglia?.release().catch(()=>{}); sveglia = null; return; }
+  if(!sveglia && navigator.wakeLock){ try{ sveglia = await navigator.wakeLock.request("screen"); sveglia.onrelease = ()=>{ sveglia = null; }; }catch(e){} }
+}
 function disegna(){
-  if(sess?.stato==="spoglio" || (sess?.stato==="voto" && fallita!==sess.giro)) mandaScheda();
+  if(sess?.stato==="spoglio") mandaScheda();
+  tieniAcceso();
   const corpo = $("#corpo"), piede = $("#piede");
   const icona = (k,c="") => `<div class="st-ic ${c}">${IC[k]}</div>`;
   let h, p = "";
@@ -265,9 +273,8 @@ function disegna(){
   else if(tel.stato==="uscito") h = `<div class="st-c">${icona("porta","r")}<h4>Sei uscito</h4><p>Risulti uscito dalla riunione: non puoi votare.</p></div>`;
   else if(sess.stato==="voto" && sess.domanda){
     const d = sess.domanda, g = sess.giro;
-    if(votando || invio) h = `<div class="st-c"><div class="st-attesa"><i></i></div><h4>Sto mandando il voto</h4><p>Un attimo, non chiudere.</p></div>`;
-    else if(votato?.giro===g && pendente(g)) h = `<div class="st-c">${icona("urna","v")}<h4>Voto registrato</h4><p>Lascia aperta questa pagina finché non finisce la votazione: la scheda partirà da qui.</p></div>`;
-    else if(votato?.giro===g) h = `<div class="st-c">${icona("urna","v")}<h4>Voto registrato</h4><p>Grazie, puoi posare il telefono.</p><p style="color:var(--ink3);font-size:13.5px">È segreto: nessuno sa cosa hai scelto. Il risultato comparirà qui.</p></div>`;
+    if(votando) h = `<div class="st-c"><div class="st-attesa"><i></i></div><h4>Sto mandando il voto</h4><p>Un attimo, non chiudere.</p></div>`;
+    else if(votato?.giro===g) h = `<div class="st-c">${icona("urna","v")}<h4>Voto registrato</h4><div class="st-resta"><b>Non uscire da questa schermata</b>Non chiudere il browser e non spegnere il telefono finché non compare il risultato: la tua scheda parte da qui a fine votazione.</div></div>`;
     else if(bianca){
       h = `<div class="st-c">${icona("urna")}<h4>Scheda bianca?</h4><p>Sei sicuro di voler lasciare la scheda in bianco? Non potrai più cambiarla.</p></div>`;
       p = `<div class="st-p"><button class="st-bt" id="bok">Sì, lascia in bianco</button><button class="st-bt gh" id="bno">Torna alla scheda</button></div>`;
@@ -281,7 +288,7 @@ function disegna(){
       p = `<div class="st-p"><button class="st-bt" id="ok" ${scelta.length?"":"disabled"}>Conferma il voto</button><button class="st-bt gh" id="bia">Scheda bianca</button></div>`;
     }
   }
-  else if(sess.stato==="spoglio") h = `<div class="st-c"><div class="st-attesa"><i></i></div><h4>Si contano i voti</h4><p>${pendente(sess.giro)?"La tua scheda sta partendo.":"Il risultato comparirà qui fra poco."}</p></div>`;
+  else if(sess.stato==="spoglio") h = `<div class="st-c"><div class="st-attesa"><i></i></div><h4>Si contano i voti</h4><p>${pendente(sess.giro)?"La tua scheda sta partendo, insieme a quelle degli altri. Non uscire da questa schermata.":"Il risultato comparirà qui fra poco."}</p></div>`;
   else if(sess.stato==="risultato" && sess.risultato) h = risultato(sess.risultato);
   else h = `<div class="st-c">${icona("ok","v")}<h4>Ciao, ${esc(tel.nome)}</h4><p>Sei collegato come<br><b>${esc(tel.membroNome||"")}</b>.</p><p style="color:var(--ink3);font-size:13.5px">La votazione comparirà qui da sola.</p></div>`;
   const att = document.activeElement?.id, pos = document.activeElement?.selectionStart;
@@ -340,8 +347,8 @@ document.addEventListener("input", e=>{
     disegna(); }, ()=>{ sess = false; disegna(); });
   FB.onSnapshot(FB.doc(fs, "sessioni", CODICE, "telefoni", io.uid), s=>{ tel = s.exists() ? s.data() : null; disegna(); }, ()=>{ tel = null; disegna(); });
   FB.onSnapshot(FB.doc(fs, "sessioni", CODICE, "votati", io.uid), s=>{ votato = s.exists() ? s.data() : null; disegna(); }, ()=>{ votato = null; disegna(); });
-  // tornando sulla pagina dopo aver chiuso il telefono: se la scheda non era partita, riparte
-  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ fallita = 0; disegna(); } });
+  // tornando sulla pagina: se la votazione è chiusa la scheda parte, e lo schermo torna a restare acceso
+  document.addEventListener("visibilitychange", disegna);
 })();
 </script>
 </body>

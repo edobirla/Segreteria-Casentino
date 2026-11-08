@@ -6928,7 +6928,7 @@ const GUIDA=[
   ${did(1,"Alla fine le schede arrivano tutte insieme e l'iPad le conta. L'esito compare sull'iPad, sullo schermo e sui telefoni.")}
   ${did(2,"Come sempre, <b>a verbale non va niente</b> finché non tocchi tu l'esito in fondo alla finestra. Alla riorganizzazione invece tocchi <b>Dichiara eletto</b>, oppure fai un nuovo giro o il ballottaggio.")}
   ${foto("proiezioneRisultato","Il risultato sullo schermo")}
-  <p><b>Perché è segreto.</b> Per ogni giro l'iPad crea una chiave che esiste solo nella sua memoria. Il telefono chiude la scheda con quella chiave e la manda subito, con un'identità nuova e anonima: così arriva anche se poi il telefono si spegne. Online quindi si vede soltanto <b>chi ha votato</b>, e a parte delle schede chiuse e tutte uguali, che solo l'iPad può aprire, tutte insieme, quando tocchi «Fine votazione». Per questo, durante il voto, <b>tieni aperta l'app sull'iPad</b>: se la chiudi la chiave sparisce e quel giro si ripete.</p>`},
+  <p><b>Perché è segreto.</b> Per ogni giro l'iPad crea una chiave che esiste solo nella sua memoria. Il telefono chiude la scheda con quella chiave e la tiene per sé; la manda solo quando hai chiuso la votazione, insieme a quelle degli altri, con un'identità nuova e anonima e dopo un'attesa a caso. Online quindi si vede soltanto <b>chi ha votato</b>, e a parte delle schede chiuse e tutte uguali, che solo l'iPad può aprire, tutte insieme. Per questo <b>chi ha votato non deve uscire dalla schermata</b> finché non compare il risultato: se esce, basta che la riapra e la scheda parte. Per questo, durante il voto, <b>tieni aperta l'app sull'iPad</b>: se la chiudi la chiave sparisce e quel giro si ripete.</p>`},
 
  {g:"I verbali",t:"Le decisioni con una scadenza",c:()=>`
   <p>Quando una decisione affida un compito a qualcuno, mettici una scadenza: <b>+ Da fare entro il…</b>, sotto il testo della decisione.</p>
@@ -7375,7 +7375,7 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.22";
+const VERSIONE_APP="26.23";
 const AGGIORNATA_IL="6 novembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
@@ -8248,7 +8248,7 @@ function cambiaMiaPassword(){
    Ogni riunione aperta ha una «sessione» online (sessioni/{codice}): i telefoni ci si collegano col QR,
    il segretario li riconosce e li collega alla scheda del membro. Per ogni giro di voto l'iPad crea una
    coppia di chiavi: la pubblica va ai telefoni, la privata resta solo nella memoria dell'iPad e sparisce
-   dopo lo spoglio. Le schede arrivano cifrate e senza nome appena votato; si leggono tutte insieme a votazione chiusa. */
+   dopo lo spoglio. Le schede arrivano cifrate e senza nome, tutte insieme a votazione chiusa. */
 if(CLOUD_ATTIVO) MODI.push(["telefoni","Dai telefoni, voto segreto"]);
 const SITO_PUBBLICO = "https://edobirla.github.io/Segreteria-Casentino/";
 const VOTO = {s:null, v:null, sess:null, tel:{}, votati:{}, urna:[], priv:null, ctx:null, chiave:null, giro:0,
@@ -8506,7 +8506,7 @@ function votoBox(c){
        <div class="tb-barra"><i style="width:${attese?arrivate/attese*100:0}%"></i></div>
        ${VOTO.troppe ? `<div class="tb-avv"><b>Sono arrivate più schede di quelli che hanno votato.</b> Per sicurezza questa votazione non si conta: va ripetuta.</div>
            <div class="tb-az"><button class="bt pri" data-vripeti>Ripeti la votazione</button></div>`
-         : VOTO.attesaLunga ? `<div class="tb-avv">Mancano ${attese-arrivate} schede: forse un telefono ha perso la connessione. Puoi aspettare ancora o contare quelle arrivate.</div>
+         : VOTO.attesaLunga ? `<div class="tb-avv">Mancano ${attese-arrivate} schede: forse qualcuno è uscito dalla pagina del voto. Chiedigli di riaprirla: la scheda parte da sola. Altrimenti puoi contare quelle arrivate.</div>
            <div class="tb-az"><button class="bt" data-vconta-ora>Conta le schede arrivate</button></div>`
          : `<div class="tb-nota">Le schede arrivano cifrate e senza nome; l'iPad le apre tutte insieme.</div>`}`;
   }
@@ -8589,7 +8589,6 @@ async function votoFine(){
   VOTO.ascoltoUrna?.();
   VOTO.ascoltoUrna = FB.onSnapshot(FB.collection(CLOUD.fs, "sessioni", VOTO.s, "urna"), q=>{
     VOTO.urna = q.docs.filter(d=>d.data().giro===VOTO.giro).map(d=>({ref:d.ref, ...d.data()}));
-    q.docs.filter(d=>d.data().giro<VOTO.giro).forEach(d=>FB.deleteDoc(d.ref).catch(()=>{}));   // giri interrotti: la loro chiave non esiste più
     const attese = Object.values(VOTO.votati).filter(x=>x.giro===VOTO.giro).length;
     if(VOTO.urna.length > attese) VOTO.troppe = true;
     else if(VOTO.urna.length === attese && attese) votoConta();

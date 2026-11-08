@@ -236,7 +236,7 @@ const PASSI = [
      schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic">${IC.urna}</div><h4>Scheda bianca?</h4><p>Sei sicuro di voler lasciare la scheda in bianco? Non potrai più cambiarla.</p></div></div>`,
        `<button class="st-bt" id="bok">Sì, lascia in bianco</button><button class="st-bt gh">Torna alla scheda</button>`);
      await attesa(2200); await tocca("#bok");
-     schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.urna}</div><h4>Voto registrato</h4><p>Grazie, puoi posare il telefono.</p></div></div>`);
+     schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.urna}</div><h4>Voto registrato</h4><p><b>Non uscire da questa schermata</b> finché non compare il risultato.</p></div></div>`);
      viaDito(); await attesa(1800);
    }},
   {t:"Nelle elezioni", d:10, x:"Per una carica scegli un nome: puoi cercarlo scrivendo le prime lettere, poi conferma.",
@@ -261,10 +261,10 @@ const PASSI = [
      $("#si").classList.add("on"); $("#si i").innerHTML = IC.ok; $("#ok").disabled = false;
      await attesa(900); await tocca("#ok");
    }},
-  {t:"Il voto è segreto", d:6, x:"La scheda parte chiusa e senza nome. Nessuno può sapere che cosa hai scelto, nemmeno il segretario.",
+  {t:"Il voto è segreto", d:6, x:"La scheda parte chiusa e senza nome, insieme a quelle degli altri. Non uscire dalla schermata finché non compare il risultato. Nessuno può sapere che cosa hai scelto, nemmeno il segretario.",
    async fai(){
      viaDito();
-     schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.urna}</div><h4>Voto registrato</h4><p>Grazie, puoi posare il telefono.</p>
+     schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.urna}</div><h4>Voto registrato</h4><p><b>Non uscire da questa schermata</b> finché non compare il risultato.</p>
        <p style="color:var(--ink3);font-size:13.5px">È segreto: nessuno sa cosa hai scelto. Il risultato comparirà qui.</p></div></div>`);
      await attesa(4500);
    }},

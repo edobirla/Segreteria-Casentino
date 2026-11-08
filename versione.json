@@ -1,8 +1,8 @@
 {
-  "versione": "26.22",
+  "versione": "26.23",
   "data": "novembre 2026",
   "novita": [
-    "Voto dai telefoni: la scheda parte subito, così arriva anche se poi il telefono si chiude.",
+    "Voto dai telefoni: dopo il voto un avviso grande dice di non uscire dalla schermata. Chi esce e la riapre manda comunque la scheda.",
     "Quando chiudi il verbale, i telefoni tornano alla schermata principale.",
     "Presenze: chi rientra o se ne va conta solo per il periodo giusto e i sabati passati non cambiano più.",
     "Un ospite collegato a un membro: i sabati da ospite contano nella sua scheda.",
