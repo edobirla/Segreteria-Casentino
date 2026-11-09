@@ -1,7 +1,8 @@
 {
-  "versione": "26.25",
+  "versione": "26.26",
   "data": "novembre 2026",
   "novita": [
+    "Computer della proiezione: pulsante «Tutorial» per proiettare il tutorial del voto, e dalla proiezione si passa dal tutorial alla riunione e ritorno.",
     "Voto dai telefoni: la scheda parte appena si conferma il voto, chiusa e senza nome. Dopo si può anche uscire dalla pagina: il voto è già arrivato.",
     "Voto dai telefoni: «Scheda bianca» è l'ultima delle opzioni. Prima di mandare il voto compare «Stai votando» con nome e foto; la scheda bianca chiede conferma due volte.",
     "Voto dai telefoni: il risultato compare appena chiudi la votazione, senza attese.",

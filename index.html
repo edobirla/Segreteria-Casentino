@@ -709,7 +709,8 @@ table.t2 tr.sz td{background:var(--sup2);font-family:var(--mono);font-size:10.6p
 #mn .ru.dist{color:var(--blu);font-weight:600}
 #proiezione{position:fixed;inset:0;z-index:10000;background:#0F1D4C}
 #proiezione iframe{width:100%;height:100%;border:0;display:block}
-.pz-esci{position:absolute;top:14px;right:14px;opacity:0;transition:opacity .25s;border:1px solid rgba(255,255,255,.3);background:rgba(15,29,76,.85);color:#fff;
+.pz-tasti{position:absolute;top:14px;left:14px;display:flex;gap:8px}
+.pz-esci{opacity:0;transition:opacity .25s;border:1px solid rgba(255,255,255,.3);background:rgba(15,29,76,.85);color:#fff;
   font:inherit;font-size:14px;padding:8px 14px;border-radius:8px;cursor:pointer}
 #proiezione.mostra .pz-esci,.pz-esci:focus-visible{opacity:1}
 .tel-cod{align-items:center;gap:14px;flex-wrap:wrap}
@@ -1454,7 +1455,7 @@ function disegna(){
           <span class="dot"></span><span class="sb-st-t"><b>Backup</b><span id="bkStato">${DB.impostazioni.daBackup?"modifiche da salvare":(ub?"fatto il "+dataBreve(ub):"mai fatto")}</span></span>
           <span class="sb-st-az">Fai ora</span></button>
         <div class="sb-st cl" id="cloudRiga"><span class="dot"></span><span class="sb-st-t"><b>Archivio online</b><span id="cloudSpia"></span></span></div>
-        <div class="sb-chi"><span class="sb-io" id="sbIo"></span><button class="sb-esci sb-pz" data-proiezione title="Usa questo dispositivo come schermo di proiezione">Proiezione</button><button class="sb-esci" data-escimenu>Esci</button></div>
+        <div class="sb-chi"><span class="sb-io" id="sbIo"></span><button class="sb-esci sb-pz" data-proiezione title="Usa questo dispositivo come schermo di proiezione">Proiezione</button><button class="sb-esci sb-pz" data-proiezione="tutorial" title="Proietta il tutorial del voto dai telefoni">Tutorial</button><button class="sb-esci" data-escimenu>Esci</button></div>
       </div>
     </aside><main class="mn" id="mn"></main>`;
   $$("[data-vai]").forEach(b=>b.onclick=()=>vai(b.dataset.vai));
@@ -6916,7 +6917,7 @@ const GUIDA=[
   ${did(1,"Nel verbale compare il riquadro <b>Telefoni per votare</b>, con il <b>codice della riunione</b> (sei caratteri, cambia ogni riunione). Chi vota inquadra il QR sullo schermo; chi non può, apre l'app <b>Vota</b> o la pagina del voto e scrive il codice. <b>Manda il link</b> lo fa arrivare nel gruppo, per chi non vede lo schermo. In fondo al riquadro vedi chi è presente ma non ha ancora collegato il telefono.")}
   ${did(2,"Per ogni telefono l'app ti propone i nomi che somigliano: tocchi quello giusto, oppure scegli un altro membro o <b>Rifiuta</b>. Un telefono che ha già votato in un'altra riunione viene riconosciuto: il primo nome proposto è quello dell'ultima volta. Se il membro non era segnato presente, l'app ti chiede se è <b>in sala</b> o <b>a distanza</b>, e lo scrive nel verbale. Chi esce dalla riunione esce anche dal voto.")}
   ${foto("proiezione","Lo schermo di proiezione")}
-  <p><b>Per spiegarlo all'assemblea</b> c'è un tutorial animato che mostra il telefono passo per passo, dal QR al risultato: apri <a href="https://edobirla.github.io/Segreteria-Casentino/tutorial-voto.html" target="_blank" rel="noopener">tutorial-voto.html</a> sul computer della proiezione e fai doppio clic per il tutto schermo. Spazio mette in pausa, le frecce vanno avanti e indietro.</p>
+  <p><b>Per spiegarlo all'assemblea</b> c'è un tutorial animato che mostra il telefono passo per passo, dal QR al risultato: apri <a href="https://edobirla.github.io/Segreteria-Casentino/tutorial-voto.html" target="_blank" rel="noopener">tutorial-voto.html</a> sul computer della proiezione e fai doppio clic per il tutto schermo. Se il computer ha un accesso all'app, tocca <b>Tutorial</b> in fondo al menu, accanto a Proiezione; durante la proiezione, il pulsante in alto a destra passa dal tutorial alla riunione e ritorno. Spazio mette in pausa, le frecce vanno avanti e indietro.</p>
   <p><b>L'app «Vota» sul telefono.</b> Dalla pagina del voto, nel menu del browser, si sceglie <b>Aggiungi alla schermata Home</b>: compare l'icona con l'urna. Aprendola si scrive il codice della riunione; dentro la stessa riunione non serve rifare niente, le votazioni arrivano da sole.</p>
   ${foto("telCodice","Il codice scritto a mano")}
   ${foto("votoPronto","La votazione, pronta da aprire")}
@@ -7375,7 +7376,7 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.25";
+const VERSIONE_APP="26.26";
 const AGGIORNATA_IL="9 novembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
@@ -7854,24 +7855,33 @@ async function accessoDispositivo(nome, ruolo){
 }
 /* ---------- questo dispositivo fa da schermo di proiezione ----------
    A tutto schermo, senza comandi: mostra la riunione che l'iPad decide di proiettare
-   («Proietta sullo schermo» nel riquadro dei telefoni), altrimenti il logo. Si esce con Esc o col pulsante in alto. */
-function modoProiezione(){
+   («Proietta sullo schermo» nel riquadro dei telefoni), altrimenti il logo. Si esce con Esc o col pulsante in alto.
+   In alto c'è anche il tutorial del voto: lo si proietta e si torna alla riunione con lo stesso pulsante. */
+function modoProiezione(tutorial){
   if($("#proiezione")) return;
   const el = document.createElement("div"); el.id = "proiezione";
-  el.innerHTML = `<iframe title="Schermo di proiezione"></iframe><button class="pz-esci" type="button">Esci dalla proiezione</button>`;
+  el.innerHTML = `<iframe title="Schermo di proiezione"></iframe><div class="pz-tasti"><button class="pz-esci" data-pztut type="button"></button><button class="pz-esci" data-pzesci type="button">Esci dalla proiezione</button></div>`;
   document.body.appendChild(el);
   const fr = $("iframe", el), url = s => new URL("proiezione.html", location.href).href + "?attesa&t=" + Date.now() + (s ? "#" + s : "");
-  let ora;
-  const ferma = FB.onSnapshot(D("config","proiezione"), d=>{ const s = d.data()?.sessione || ""; if(s!==ora){ ora = s; fr.src = url(s); } },
-    ()=>{ if(ora===undefined){ ora = ""; fr.src = url(""); } });
+  let ora, tut = !!tutorial, t;
+  function tocco(){ el.classList.add("mostra"); clearTimeout(t); t = setTimeout(()=>el.classList.remove("mostra"), 2500); }
+  function tasto(e){ if(e.key==="Escape") esci(); }
+  const mostra = () => { fr.src = tut ? new URL("tutorial-voto.html", location.href).href : url(ora || "");
+    $("[data-pztut]", el).textContent = tut ? "Torna alla riunione" : "Tutorial del voto"; };
+  // il mouse e Esc dentro la pagina proiettata arrivano anche qui (stessa origine); spazio e frecce vanno al tutorial
+  fr.onload = () => { try{ const d = fr.contentDocument; d.addEventListener("mousemove", tocco); d.addEventListener("keydown", tasto); }catch(e){}
+    if(tut) fr.contentWindow.focus(); };
+  $("[data-pztut]", el).onclick = () => { tut = !tut; mostra(); };
+  if(tut) mostra(); else $("[data-pztut]", el).textContent = "Tutorial del voto";
+  const ferma = FB.onSnapshot(D("config","proiezione"), d=>{ const s = d.data()?.sessione || ""; if(s!==ora){ ora = s; if(!tut) fr.src = url(s); } },
+    ()=>{ if(ora===undefined){ ora = ""; if(!tut) fr.src = url(""); } });
   const esci = () => { ferma(); el.remove(); document.removeEventListener("keydown", tasto); if(document.fullscreenElement) document.exitFullscreen?.().catch(()=>{}); };
-  const tasto = e => { if(e.key==="Escape") esci(); };
   document.addEventListener("keydown", tasto);
-  $(".pz-esci", el).onclick = esci;
-  let t; el.onmousemove = () => { el.classList.add("mostra"); clearTimeout(t); t = setTimeout(()=>el.classList.remove("mostra"), 2500); };
+  $("[data-pzesci]", el).onclick = esci;
+  el.onmousemove = tocco;
   document.documentElement.requestFullscreen?.().catch(()=>{});
 }
-document.addEventListener("click", e=>{ if(e.target.closest("[data-proiezione]")) modoProiezione(); });
+document.addEventListener("click", e=>{ const b = e.target.closest("[data-proiezione]"); if(b) modoProiezione(b.dataset.proiezione==="tutorial"); });
 /* chi vede solo le presenze: l'app mostra solo quelle, e in memoria restano solo le parti che può leggere */
 function preparaVista(){
   if(!soloPresenze()) return;
@@ -8149,6 +8159,7 @@ function bloccoAccessi(){
         <div class="s">${CLOUD.io.admin?"amministratore · ":""}${esc(nomeRuolo(CLOUD.io.admin?"modifica":CLOUD.io.ruolo))} · nome utente: ${esc(CLOUD.io.nome)}</div></div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="bt" data-mipw>Cambia la mia password</button>
         <button class="bt" data-proiezione>Usa questo dispositivo come schermo di proiezione</button>
+        <button class="bt" data-proiezione="tutorial">Proietta il tutorial del voto</button>
         <button class="bt" data-escimenu>Esci</button></div>
       <p class="cl-spia-t"><span id="cloudSpia2"></span></p></div></div>
     ${CLOUD.io.admin?`<div class="pn"><div class="pn-h"><span class="lb">Chi può entrare</span><button class="bt sm psh" data-accnuovo>+ Aggiungi una persona</button><button class="bt sm" data-accdisp>+ Aggiungi un dispositivo</button></div>
