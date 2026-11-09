@@ -29,11 +29,11 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden}
 .sp-tit.piccolo{font-size:4.2cqw;margin-top:2.6cqw}
 .sp-sot{font-size:2.1cqw;opacity:.66;margin-top:1.1cqw}
 .sp-chips{display:flex;flex-wrap:wrap;gap:1.4cqw;margin-top:2.8cqw}
-.sp-chip{display:flex;align-items:center;gap:1.2cqw;padding:.8cqw 2cqw .8cqw .8cqw;border-radius:1.2cqw;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);font-size:2.4cqw;font-weight:600}
+.sp-chip{display:flex;align-items:center;gap:.5em;padding:.33em .83em .33em .33em;border-radius:.5em;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);font-size:var(--cf,2.4cqw);font-weight:600}
 .sp-chip.senza{padding-left:2cqw}
 .ft{border-radius:1cqw;overflow:hidden;display:grid;place-items:center;background:rgba(255,255,255,.14);font-family:var(--serif);font-weight:600;flex:none}
 .ft img{width:100%;height:100%;object-fit:cover;display:block}
-.ft.c{width:4.2cqw;height:4.2cqw;font-size:1.6cqw} .ft.g{width:22cqw;height:22cqw;font-size:8cqw;border-radius:2cqw} .ft.e{width:10cqw;height:10cqw;font-size:3.8cqw;border-radius:1.4cqw}
+.ft.c{width:1.75em;height:1.75em;font-size:.67em} .ft.g{width:22cqw;height:22cqw;font-size:8cqw;border-radius:2cqw} .ft.e{width:10cqw;height:10cqw;font-size:3.8cqw;border-radius:1.4cqw}
 .sp-conta{margin-top:auto;display:flex;align-items:flex-end;gap:2.6cqw}
 .sp-num{font-family:var(--serif);font-weight:600;font-size:15cqw;line-height:.82;letter-spacing:-.04em}
 .sp-num span{opacity:.4;font-size:.5em}
@@ -210,7 +210,27 @@ function barre(righe, max, soglia, vinti, spazio=32){
       <div class="sp-r-b"><i style="width:${x.v/max*100}%"></i>${soglia?`<u style="left:${Math.min(100,soglia/max*100)}%"></u>`:""}</div></div>`).join("")}</div>`;
 }
 const scheda = (m, carica, cls="") => `<div class="sp-card ${cls}">${foto(m,"ft e")}<div><b>${esc(m.nome)}</b><span>${esc(carica||"")}</span></div></div>`;
-function disegna(){
+/* niente sotto il bordo dello schermo: prima più colonne, poi caratteri più piccoli, alla fine tutto più piccolo */
+function adatta(){
+  const el = $("#schermo"); el.style.transform = el.style.width = el.style.height = "";
+  const esce = () => el.scrollHeight > el.clientHeight + 1;
+  const ris = el.querySelector(".sp-ris");
+  if(ris){
+    const n = ris.children.length; let col = +ris.style.getPropertyValue("--col"), fs = parseFloat(ris.style.getPropertyValue("--fs"));
+    while(esce() && col < 6 && col < n){ col++; ris.style.setProperty("--col", col); ris.style.gridTemplateRows = `repeat(${Math.ceil(n/col)},auto)`; }
+    while(esce() && fs > 1.1){ fs *= .9; ris.style.setProperty("--fs", fs.toFixed(2)+"cqw"); }
+  }
+  const ch = el.querySelector(".sp-chips");
+  for(let f = 2.4; ch && esce() && f > 1.1; ){ f *= .9; ch.style.setProperty("--cf", f.toFixed(2)+"cqw"); }
+  if(esce()){
+    const s = el.clientHeight / el.scrollHeight;
+    Object.assign(el.style, {transformOrigin:"top left", transform:`scale(${s})`, width:100/s+"%", height:100/s+"%"});
+  }
+}
+function disegna(){ disegnaSchermo(); adatta(); }
+addEventListener("resize", adatta);
+document.fonts?.ready.then(adatta);
+function disegnaSchermo(){
   const el = $("#schermo");
   if(mioSchermo && !collegato){ el.innerHTML = `<div class="sp-vuoto"><img src="${LOGO}" alt=""><h2>Schermo di proiezione</h2>
       <div class="sp-cod">${esc(mioSchermo.slice(0,4)+"-"+mioSchermo.slice(4))}</div>

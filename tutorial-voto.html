@@ -89,6 +89,16 @@ body.mostra .comandi{opacity:1}
 .st-o i svg{width:16px;height:16px}
 .st-o.on i{background:var(--blu);border-color:var(--blu)} .st-o.fav.on i{background:var(--verde);border-color:var(--verde)}
 .st-o.via{display:none}
+.st-o.bia .n{font-style:italic;color:var(--ink2)} .st-o.bia .av{background:#fff;border:1.5px solid #D5D9CF}
+.st-bt.xl{font-size:19px;padding:17px;border-radius:14px} .st-bt.sec{background:#fff;color:var(--blu);border:2px solid var(--blu);box-shadow:none}
+.st-conf{margin:auto 0;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.st-conf>small{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--ink3)}
+.st-conf h3{font-family:var(--serif);font-size:27px;line-height:1.15;font-weight:600;margin:0;color:var(--timbro)}
+.st-conf p{font-size:17px;margin:0}
+.st-conf-v{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 14px;border-radius:18px;background:#fff;border:2px solid var(--blu);width:100%}
+.st-conf-v.fav{border-color:var(--verde);background:var(--verde-t)}
+.st-conf-v b{font-family:var(--serif);font-size:27px;line-height:1.15;font-weight:600}
+.st-conf-v .av{width:96px;height:96px;border-radius:22px;font-size:34px}
 .av{width:40px;height:40px;border-radius:50%;background:var(--blu-t);color:var(--blu);display:grid;place-items:center;font-family:var(--serif);font-weight:600;font-size:14px;flex:none}
 .st-cerca{position:relative}
 .st-cerca svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--ink3)}
@@ -188,8 +198,16 @@ async function tocca(sel){
 const viaDito = () => { $("#dito").style.opacity = 0; };
 
 /* ---- i passaggi ---- */
-const scheda = (titolo, opz, piede=true) => schermo(`${testa}<div class="st-b"><div><div class="st-q">Votazione</div><div class="st-tit">${titolo}</div><span class="st-quanti">Scegline uno</span></div>${opz}</div>`,
-  piede ? `<button class="st-bt" id="ok" disabled>Conferma il voto</button><button class="st-bt gh">Scheda bianca</button>` : "");
+const BIANCA = (av=false) => `<div class="st-o bia" id="bia">${av?`<div class="av"></div>`:""}<span class="n">Scheda bianca</span><i></i></div>`;
+const PIEDE = `<button class="st-bt xl" id="ok" disabled>Conferma il voto</button>`;
+const scheda = (titolo, opz, piede=true, av=false) => schermo(`${testa}<div class="st-b"><div><div class="st-q">Votazione</div><div class="st-tit">${titolo}</div><span class="st-quanti">Scegline uno</span></div>${opz}${BIANCA(av)}</div>`,
+  piede ? PIEDE : "");
+// «Stai votando»: la scelta in grande, con Conferma o Cambia votazione
+const staiVotando = async (voce, sotto="") => {
+  schermo(`${testa}<div class="st-b"><div class="st-conf"><small>Stai votando</small>${voce}${sotto?`<span style="color:var(--ink3)">${sotto}</span>`:""}</div></div>`,
+    `<button class="st-bt xl" id="ok2">Conferma</button><button class="st-bt xl sec">Cambia votazione</button>`);
+  await attesa(1800); await tocca("#ok2");
+};
 const PASSI = [
   {t:"Inquadra il codice", d:8, x:"Apri la fotocamera del telefono e inquadra il QR che compare sullo schermo. Poi tocca il collegamento che appare in alto.",
    async fai(){
@@ -222,46 +240,52 @@ const PASSI = [
      schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.ok}</div><h4>Ciao, Giulia</h4><p>Sei collegato come<br><b>Bellini Giulia</b>.</p><p style="color:var(--ink3);font-size:13.5px;margin-top:6px">La votazione comparirà qui da sola.</p></div></div>`);
      await attesa(3200);
    }},
-  {t:"Scegli e conferma", d:7, x:"Quando si vota compare la scheda. Tocca la tua scelta, poi «Conferma il voto». Se preferisci, puoi lasciare la scheda bianca.",
+  {t:"Scegli e conferma", d:10, x:"Quando si vota compare la scheda. Tocca la tua scelta, poi «Conferma il voto». Il telefono ti mostra in grande che cosa stai votando: tocca «Conferma», oppure «Cambia votazione» per tornare alla scheda.",
    async fai(){
      scheda("Acquisto degli innari nuovi", `<div class="st-o fav" id="o1"><span class="n">Favorevole</span><i></i></div><div class="st-o con" id="o2"><span class="n">Contrario</span><i></i></div>`);
      await attesa(1300); await tocca("#o1");
      $("#o1").classList.add("on"); $("#o1 i").innerHTML = IC.ok; $("#ok").disabled = false;
      await attesa(900); await tocca("#ok");
+     await staiVotando(`<div class="st-conf-v fav"><b>Favorevole</b></div>`, "Acquisto degli innari nuovi");
    }},
-  {t:"La scheda bianca", d:9, x:"Se non vuoi scegliere nessuno, tocca «Scheda bianca». Il telefono chiede conferma: la scheda bianca conta come voto, ma senza nessuna scelta, e poi non si cambia più.",
+  {t:"La scheda bianca", d:12, x:"Se non vuoi scegliere nessuno, tocca «Scheda bianca», l'ultima della lista, poi «Conferma il voto». Il telefono te lo chiede due volte: così non si vota in bianco per sbaglio. La scheda bianca conta come voto, ma senza nessuna scelta.",
    async fai(){
      scheda("Acquisto degli innari nuovi", `<div class="st-o fav"><span class="n">Favorevole</span><i></i></div><div class="st-o con"><span class="n">Contrario</span><i></i></div>`);
-     await attesa(1300); await tocca(".st-bt.gh");
-     schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic">${IC.urna}</div><h4>Scheda bianca?</h4><p>Sei sicuro di voler lasciare la scheda in bianco? Non potrai più cambiarla.</p></div></div>`,
-       `<button class="st-bt" id="bok">Sì, lascia in bianco</button><button class="st-bt gh">Torna alla scheda</button>`);
+     await attesa(1300); await tocca("#bia");
+     $("#bia").classList.add("on"); $("#bia i").innerHTML = IC.ok; $("#ok").disabled = false;
+     await attesa(800); await tocca("#ok");
+     schermo(`${testa}<div class="st-b"><div class="st-conf"><div class="st-ic" style="background:var(--timbro-t);color:var(--timbro)">${IC.urna}</div><h3>Stai lasciando la scheda bianca</h3><p>Non stai scegliendo nessuno: il tuo voto conterà come scheda bianca.</p></div></div>`,
+       `<button class="st-bt xl" id="av">Vai avanti</button><button class="st-bt xl sec">Cambia votazione</button>`);
+     await attesa(2200); await tocca("#av");
+     schermo(`${testa}<div class="st-b"><div class="st-conf"><div class="st-ic" style="background:var(--timbro-t);color:var(--timbro)">${IC.urna}</div><h3>Sei sicuro di voler lasciare la scheda in bianco?</h3><p>Dopo non potrai più cambiarla.</p></div></div>`,
+       `<button class="st-bt xl" id="bok">Sì, lascia in bianco</button><button class="st-bt xl sec">Cambia votazione</button>`);
      await attesa(2200); await tocca("#bok");
      schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.urna}</div><h4>Voto registrato</h4><p><b>Non uscire da questa schermata</b> finché non compare il risultato.</p></div></div>`);
      viaDito(); await attesa(1800);
    }},
-  {t:"Nelle elezioni", d:10, x:"Per una carica scegli un nome: puoi cercarlo scrivendo le prime lettere, poi conferma.",
+  {t:"Nelle elezioni", d:13, x:"Per una carica scegli un nome: puoi cercarlo scrivendo le prime lettere, poi conferma. Prima di mandare il voto vedi in grande nome e foto di chi stai votando.",
    async fai(){
      const nomi = ["Bassi Rita","Benedetti Carla","Fabbri Franco","Fabbri Paola","Galli Matteo"];
      const iniz = n => n.split(" ").map(x=>x[0]).join("");
      scheda("Diaconessa", `<label class="st-cerca">${IC.cerca}<div class="st-in" id="q"></div></label>
-       ${nomi.map((n,i)=>`<div class="st-o" id="n${i}"><div class="av">${iniz(n)}</div><span class="n">${n}</span><i></i></div>`).join("")}`);
+       ${nomi.map((n,i)=>`<div class="st-o" id="n${i}"><div class="av">${iniz(n)}</div><span class="n">${n}</span><i></i></div>`).join("")}`, true, true);
      await attesa(1000); await tocca("#q"); await scrivi("#q", "fab", 260);
      nomi.forEach((n,i) => { if(!n.toLowerCase().includes("fab")) $("#n"+i).classList.add("via"); });
      await attesa(900); await tocca("#n3");
      $("#n3").classList.add("on"); $("#n3 i").innerHTML = IC.ok; $("#ok").disabled = false;
      await attesa(900); await tocca("#ok");
+     await staiVotando(`<div class="st-conf-v"><div class="av">FP</div><b>Fabbri Paola</b></div>`, "Diaconessa");
    }},
   {t:"Un solo candidato", d:7, x:"Se per una carica c'è un solo candidato, sulla scheda c'è il suo nome: si vota Sì o No.",
    async fai(){
      schermo(`${testa}<div class="st-b"><div><div class="st-q">Votazione</div><div class="st-tit">Tesoriere</div>
        <div class="st-prop"><div class="av" style="width:52px;height:52px;border-radius:12px;font-size:18px">GM</div><div><small>Candidato proposto</small><b>Galli Matteo</b></div></div></div>
-       <div class="st-o fav" id="si"><span class="n">Sì</span><i></i></div><div class="st-o con" id="no"><span class="n">No</span><i></i></div></div>`,
-       `<button class="st-bt" id="ok" disabled>Conferma il voto</button><button class="st-bt gh">Scheda bianca</button>`);
+       <div class="st-o fav" id="si"><span class="n">Sì</span><i></i></div><div class="st-o con" id="no"><span class="n">No</span><i></i></div>${BIANCA()}</div>`, PIEDE);
      await attesa(1300); await tocca("#si");
      $("#si").classList.add("on"); $("#si i").innerHTML = IC.ok; $("#ok").disabled = false;
      await attesa(900); await tocca("#ok");
    }},
-  {t:"Il voto è segreto", d:6, x:"La scheda parte chiusa e senza nome, insieme a quelle degli altri. Non uscire dalla schermata finché non compare il risultato. Nessuno può sapere che cosa hai scelto, nemmeno il segretario.",
+  {t:"Il voto è segreto", d:6, x:"La scheda parte chiusa e senza nome, appena il segretario chiude la votazione. Non uscire dalla schermata finché non compare il risultato. Nessuno può sapere che cosa hai scelto, nemmeno il segretario.",
    async fai(){
      viaDito();
      schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.urna}</div><h4>Voto registrato</h4><p><b>Non uscire da questa schermata</b> finché non compare il risultato.</p>

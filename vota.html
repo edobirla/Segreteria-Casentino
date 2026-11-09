@@ -93,6 +93,20 @@ body{background:#F5F6F2;color:var(--ink);font-family:var(--sans);font-size:15px;
 .st-rr em{font-style:normal;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
 .st-resta{margin-top:6px;padding:16px;border-radius:14px;background:var(--timbro-t);color:var(--timbro);font-size:15px;line-height:1.4}
 .st-resta b{display:block;font-family:var(--serif);font-size:26px;line-height:1.15;font-weight:600;margin-bottom:8px}
+.st-o.bia .n{font-style:italic;color:var(--ink2)} .st-o.bia .ft{background:#fff;border:1.5px solid #D5D9CF}
+.st-bt.xl{font-size:20px;padding:19px;border-radius:14px}
+.st-bt.sec{background:#fff;color:var(--blu);border:2px solid var(--blu);box-shadow:none}
+.st-p.due{gap:10px}
+.st-conf{margin:auto 0;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.st-conf>small{font-family:var(--serif);font-style:italic;font-size:18px;color:var(--ink3)}
+.st-conf h3{font-family:var(--serif);font-size:30px;line-height:1.15;font-weight:600;margin:0;text-wrap:balance}
+.st-conf .ft.e{width:120px;height:120px;font-size:40px;border-radius:24px}
+.st-conf-v{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 14px;border-radius:18px;background:#fff;border:2px solid var(--blu);width:100%}
+.st-conf-v.fav{border-color:var(--verde);background:var(--verde-t)} .st-conf-v.con{border-color:var(--timbro);background:var(--timbro-t)}
+.st-conf-v b{font-family:var(--serif);font-size:30px;line-height:1.15;font-weight:600}
+.st-conf-v span{font-size:16px;color:var(--ink2)}
+.st-conf.bianca h3{font-size:34px;color:var(--timbro)}
+.st-conf.bianca p{font-size:19px;line-height:1.4;margin:0;color:var(--ink)}
 .st-err{padding:10px 12px;border-radius:10px;background:var(--timbro-t);color:var(--timbro);font-size:14px}
 </style>
 </head>
@@ -200,7 +214,7 @@ const conBianche = (r, righe) => r.bianche ? [...righe, {et:"Schede bianche", v:
 // solo nelle prove sul Mac: ?t=1, ?t=2… fanno finta di essere telefoni diversi nello stesso browser
 const {fs, auth} = collega(EMULATORE && new URLSearchParams(location.search).get("t") ? "tel" + new URLSearchParams(location.search).get("t") : undefined);
 let URNA = null;                              // seconda identità, solo per mandare la scheda
-let io = null, sess = null, tel = undefined, votato = undefined, scelta = [], cerca = "", bianca = false, riprova = false, invio = false, votando = false, sveglia = null;
+let io = null, sess = null, tel = undefined, votato = undefined, scelta = [], cerca = "", conf = 0, giroVisto, riprova = false, invio = false, votando = false, sveglia = null;
 const chiavePendente = g => `scheda:${CODICE}:${io?.uid}:${g}`;   // legata a questo telefono e a questo giro
 const pendente = g => { try{ return JSON.parse(localStorage.getItem(chiavePendente(g))); }catch(e){ return null; } };
 
@@ -220,19 +234,22 @@ async function vota(sc){
     const busta = await cifra(sc, sess.chiave);
     localStorage.setItem(chiavePendente(g), JSON.stringify({giro:g, ...busta}));
     await FB.setDoc(FB.doc(fs, "sessioni", CODICE, "votati", io.uid), {giro:g});
-    scelta = []; bianca = false;
+    scelta = []; conf = 0;
   }catch(e){ localStorage.removeItem(chiavePendente(g)); alert("Il voto non è partito: controlla la connessione e riprova."); }
   votando = false; disegna();
 }
-// a votazione chiusa la scheda parte, dopo un'attesa a caso, da un'identità anonima nuova
+// l'identità anonima per la scheda si prepara subito, così a votazione chiusa la scheda parte all'istante
+function preparaUrna(){
+  if(!URNA) URNA = collega("urna", FB.inMemoryPersistence);
+  return URNA.auth.currentUser ? Promise.resolve() : FB.signInAnonymously(URNA.auth);
+}
+// a votazione chiusa la scheda parte subito, da un'identità anonima diversa da quella del telefono
 async function mandaScheda(){
   const p = pendente(sess.giro);
   if(!p || invio || votando || votato?.giro!==p.giro) return;
   invio = true;
   try{
-    await new Promise(r => setTimeout(r, 300 + Math.random()*2200));
-    if(!URNA) URNA = collega("urna", FB.inMemoryPersistence);
-    if(!URNA.auth.currentUser) await FB.signInAnonymously(URNA.auth);
+    await preparaUrna();
     await FB.setDoc(FB.doc(FB.collection(URNA.fs, "sessioni", CODICE, "urna")), p);
     localStorage.removeItem(chiavePendente(p.giro));
   }catch(e){ console.warn(e); }
@@ -244,6 +261,10 @@ async function tieniAcceso(){
   const serve = sess && ["voto","spoglio"].includes(sess.stato) && pendente(sess.giro) && !document.hidden;
   if(!serve){ sveglia?.release().catch(()=>{}); sveglia = null; return; }
   if(!sveglia && navigator.wakeLock){ try{ sveglia = await navigator.wakeLock.request("screen"); sveglia.onrelease = ()=>{ sveglia = null; }; }catch(e){} }
+}
+function battito(){
+  if(!tel || !io || !CODICE) return;
+  FB.updateDoc(FB.doc(fs, "sessioni", CODICE, "telefoni", io.uid), {visto:FB.serverTimestamp(), attivo:!document.hidden}).catch(()=>{});
 }
 function disegna(){
   if(sess?.stato==="spoglio") mandaScheda();
@@ -270,22 +291,41 @@ function disegna(){
     h = `<div class="st-c">${icona("porta","r")}<h4>Non risulti presente</h4><p>Non puoi partecipare alla votazione. Se pensi sia un errore, dillo al segretario e riprova.</p></div>`;
     p = `<div class="st-p"><button class="st-bt" id="rp">Riprova</button></div>`;
   }
+  else if(tel.stato==="sostituito"){
+    h = `<div class="st-c">${icona("porta","r")}<h4>Collegato da un altro telefono</h4><p>Il segretario ti ha collegato da un altro dispositivo: da questo non puoi più votare.</p></div>`;
+    p = `<div class="st-p"><button class="st-bt" id="rp">Usa di nuovo questo telefono</button></div>`;
+  }
   else if(tel.stato==="uscito") h = `<div class="st-c">${icona("porta","r")}<h4>Sei uscito</h4><p>Risulti uscito dalla riunione: non puoi votare.</p></div>`;
   else if(sess.stato==="voto" && sess.domanda){
     const d = sess.domanda, g = sess.giro;
-    if(votando) h = `<div class="st-c"><div class="st-attesa"><i></i></div><h4>Sto mandando il voto</h4><p>Un attimo, non chiudere.</p></div>`;
+    if(tel.votoFatto===g) h = `<div class="st-c">${icona("urna","v")}<h4>Hai già votato</h4><p>Il tuo voto per questa votazione è partito dall'altro telefono. Da qui voterai alla prossima.</p></div>`;
+    else if(votando) h = `<div class="st-c"><div class="st-attesa"><i></i></div><h4>Sto mandando il voto</h4><p>Un attimo, non chiudere.</p></div>`;
     else if(votato?.giro===g) h = `<div class="st-c">${icona("urna","v")}<h4>Voto registrato</h4><div class="st-resta"><b>Non uscire da questa schermata</b>Non chiudere il browser e non spegnere il telefono finché non compare il risultato: la tua scheda parte da qui a fine votazione.</div></div>`;
-    else if(bianca){
-      h = `<div class="st-c">${icona("urna")}<h4>Scheda bianca?</h4><p>Sei sicuro di voler lasciare la scheda in bianco? Non potrai più cambiarla.</p></div>`;
-      p = `<div class="st-p"><button class="st-bt" id="bok">Sì, lascia in bianco</button><button class="st-bt gh" id="bno">Torna alla scheda</button></div>`;
+    else if(conf && scelta.length){   // «Stai votando»: si rivede la scelta, in grande, prima che parta
+      const bi = scelta[0]==="__b", sc = d.opz.filter(o=>scelta.includes(o.id));
+      if(bi && conf===1){
+        h = `<div class="st-conf bianca">${icona("urna","r")}<h3>Stai lasciando la scheda bianca</h3><p>Non stai scegliendo nessuno: il tuo voto conterà come scheda bianca.</p></div>`;
+        p = `<div class="st-p due"><button class="st-bt xl" id="avanti">Vai avanti</button><button class="st-bt xl sec" id="cambia">Cambia votazione</button></div>`;
+      } else if(bi){
+        h = `<div class="st-conf bianca">${icona("urna","r")}<h3>Sei sicuro di voler lasciare la scheda in bianco?</h3><p>Dopo non potrai più cambiarla.</p></div>`;
+        p = `<div class="st-p due"><button class="st-bt xl" id="ok2">Sì, lascia in bianco</button><button class="st-bt xl sec" id="cambia">Cambia votazione</button></div>`;
+      } else {
+        h = `<div class="st-conf"><small>Stai votando</small>
+          ${d.proposto?`${foto(d.proposto,"ft e")}<h3>${esc(d.proposto.nome)}</h3>`:""}
+          ${sc.map(o=>`<div class="st-conf-v ${tono(o.et)}">${o.membro?foto(o,"ft e"):""}<b>${esc(o.et)}</b></div>`).join("")}
+          ${d.proposto?"":`<span style="color:var(--ink3)">${esc(d.titolo)}</span>`}</div>`;
+        p = `<div class="st-p due"><button class="st-bt xl" id="ok2">Conferma</button><button class="st-bt xl sec" id="cambia">Cambia votazione</button></div>`;
+      }
     } else {
+      const conFoto = d.opz.some(o=>o.membro), bi = scelta[0]==="__b";
       h = `<div><div class="st-q">${d.ballo?"Ballottaggio":"Votazione"}</div><div class="st-tit">${esc(d.titolo)}</div>
           ${d.proposto?`<div class="st-prop">${foto(d.proposto,"ft p")}<div><small>Candidato proposto</small><b>${esc(d.proposto.nome)}</b></div></div>`
             :`<span class="st-quanti">${d.max===1?"Scegline uno":`Scegline fino a ${d.max}`}</span>`}</div>
         ${d.opz.length>6?`<label class="st-cerca">${IC.cerca}<input class="st-in" id="cerca" placeholder="Cerca un nome" value="${esc(cerca)}" aria-label="Cerca un nome"></label>`:""}
         ${d.opz.map(o=>`<div class="st-o ${scelta.includes(o.id)?"on":""} ${tono(o.et)}" data-o="${esc(o.id)}" data-n="${esc(o.et.toLowerCase())}" ${cerca&&!o.et.toLowerCase().includes(cerca.toLowerCase())?"hidden":""}>
-          ${o.membro?foto(o,"ft o"):""}<span class="n">${esc(o.et)}</span><i>${scelta.includes(o.id)?IC.ok:""}</i></div>`).join("")}`;
-      p = `<div class="st-p"><button class="st-bt" id="ok" ${scelta.length?"":"disabled"}>Conferma il voto</button><button class="st-bt gh" id="bia">Scheda bianca</button></div>`;
+          ${o.membro?foto(o,"ft o"):""}<span class="n">${esc(o.et)}</span><i>${scelta.includes(o.id)?IC.ok:""}</i></div>`).join("")}
+        <div class="st-o bia ${bi?"on":""}" data-o="__b">${conFoto?`<div class="ft o"></div>`:""}<span class="n">Scheda bianca</span><i>${bi?IC.ok:""}</i></div>`;
+      p = `<div class="st-p"><button class="st-bt xl" id="ok" ${scelta.length?"":"disabled"}>Conferma il voto</button></div>`;
     }
   }
   else if(sess.stato==="spoglio") h = `<div class="st-c"><div class="st-attesa"><i></i></div><h4>Si contano i voti</h4><p>${pendente(sess.giro)?"La tua scheda sta partendo, insieme a quelle degli altri. Non uscire da questa schermata.":"Il risultato comparirà qui fra poco."}</p></div>`;
@@ -323,32 +363,36 @@ document.addEventListener("submit", async e=>{
 document.addEventListener("click", e=>{
   const o = e.target.closest("[data-o]");
   if(o){ const id = o.dataset.o, max = sess.domanda.max;
-    scelta = scelta.includes(id) ? scelta.filter(x=>x!==id) : max===1 ? [id] : scelta.length<max ? [...scelta, id] : scelta;
+    scelta = scelta.includes(id) ? scelta.filter(x=>x!==id) : id==="__b" || max===1 || scelta[0]==="__b" ? [id] : scelta.length<max ? [...scelta, id] : scelta;   // la bianca va da sola
     disegna(); return; }
-  if(e.target.closest("#ok")) vota(scelta.slice());
-  else if(e.target.closest("#bia")){ bianca = true; disegna(); }
-  else if(e.target.closest("#bno")){ bianca = false; disegna(); }
-  else if(e.target.closest("#bok")) vota([]);
+  if(e.target.closest("#ok")){ conf = 1; scrollTo(0,0); disegna(); }
+  else if(e.target.closest("#avanti")){ conf = 2; disegna(); }
+  else if(e.target.closest("#cambia")){ conf = 0; disegna(); }
+  else if(e.target.closest("#ok2")) vota(scelta.filter(x=>x!=="__b"));
   else if(e.target.closest("#rp")){ riprova = true; disegna(); }
 });
 document.addEventListener("input", e=>{
   if(e.target.id!=="cerca") return;
   cerca = e.target.value;
-  document.querySelectorAll(".st-o").forEach(o=>o.hidden = !!cerca && !o.dataset.n.includes(cerca.toLowerCase()));
+  document.querySelectorAll(".st-o:not(.bia)").forEach(o=>o.hidden = !!cerca && !o.dataset.n.includes(cerca.toLowerCase()));
 });
 
 (async function avvio(){
   if(!CODICE){ disegna(); return; }
   try{ localStorage.setItem("riunione", CODICE); }catch(e){}
   try{ io = await anonimo(auth); }catch(e){ $("#corpo").innerHTML = `<div class="st-err">Non riesco a collegarmi: controlla internet e ricarica la pagina.</div>`; return; }
-  FB.onSnapshot(FB.doc(fs, "sessioni", CODICE), s=>{ sess = s.exists() ? s.data() : false; if(sess && sess.giro!==votato?.giro) bianca = false;
+  FB.onSnapshot(FB.doc(fs, "sessioni", CODICE), s=>{ sess = s.exists() ? s.data() : false; if(sess && sess.giro!==giroVisto){ giroVisto = sess?.giro; conf = 0; scelta = []; cerca = ""; }
     // riunione finita: si torna alla schermata principale, quella del codice
     if(!sess || sess.stato==="chiusa"){ try{ localStorage.removeItem("riunione"); }catch(e){} history.replaceState(null, "", location.pathname + location.search); }
     disegna(); }, ()=>{ sess = false; disegna(); });
-  FB.onSnapshot(FB.doc(fs, "sessioni", CODICE, "telefoni", io.uid), s=>{ tel = s.exists() ? s.data() : null; disegna(); }, ()=>{ tel = null; disegna(); });
+  FB.onSnapshot(FB.doc(fs, "sessioni", CODICE, "telefoni", io.uid), s=>{ const prima = tel; tel = s.exists() ? s.data() : null; if(tel && !prima) battito(); disegna(); }, ()=>{ tel = null; disegna(); });
+  preparaUrna().catch(()=>{});
+  // «sono qui»: il segretario vede il pallino verde finché questa pagina è aperta
+  setInterval(()=>{ if(!document.hidden) battito(); }, 20000);
+  addEventListener("pagehide", battito);
   FB.onSnapshot(FB.doc(fs, "sessioni", CODICE, "votati", io.uid), s=>{ votato = s.exists() ? s.data() : null; disegna(); }, ()=>{ votato = null; disegna(); });
   // tornando sulla pagina: se la votazione è chiusa la scheda parte, e lo schermo torna a restare acceso
-  document.addEventListener("visibilitychange", disegna);
+  document.addEventListener("visibilitychange", ()=>{ battito(); disegna(); });
 })();
 </script>
 </body>

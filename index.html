@@ -7375,8 +7375,8 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.23";
-const AGGIORNATA_IL="6 novembre 2026";
+const VERSIONE_APP="26.24";
+const AGGIORNATA_IL="8 novembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
@@ -8285,10 +8285,10 @@ function votoPunteggio(scritto, m){
   }
   return s;
 }
-const votoCollegati = () => new Set(Object.values(VOTO.tel).map(t=>t.membroId).filter(Boolean));
+const votoCollegati = () => new Set(Object.values(VOTO.tel).filter(t=>["pronto","uscito"].includes(t.stato)).map(t=>t.membroId).filter(Boolean));
 function votoSuggerimenti(scritto){
-  const gia = votoCollegati(), pres = new Set(VOTO.v?.presenti||[]);
-  return attivi().filter(m=>!gia.has(m.id)).map(m=>({m, s:votoPunteggio(scritto,m)+(pres.has(m.id)?.1:0)}))
+  const pres = new Set(VOTO.v?.presenti||[]);
+  return attivi().map(m=>({m, s:votoPunteggio(scritto,m)+(pres.has(m.id)?.1:0)}))
     .filter(x=>x.s>=1).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.m);
 }
 const votoPresente = id => (VOTO.v?.presenti||[]).includes(id);
@@ -8296,8 +8296,17 @@ const votoGiro = () => VOTO.sess?.giro || 0;
 const haVotato = uid => VOTO.votati[uid]?.giro === votoGiro();
 // chi conta: telefoni collegati di presenti, più chi ha già votato anche se poi è uscito
 function votoVotanti(){
-  return Object.entries(VOTO.tel).filter(([uid,t])=>(t.stato==="pronto" && votoPresente(t.membroId)) || haVotato(uid)).map(([uid,t])=>({uid,...t}));
+  return Object.entries(VOTO.tel).filter(([uid,t])=>((t.stato==="pronto" && votoPresente(t.membroId)) || haVotato(uid)) && t.votoFatto!==votoGiro())
+    .map(([uid,t])=>({uid,...t}));
 }
+/* il pallino: verde se la pagina del voto è aperta adesso (il telefono si fa vivo ogni 20 secondi), rosso se no */
+const telVivo = t => !!(t && t.attivo && t.visto?.toMillis && Date.now()-t.visto.toMillis() < 50000);
+const titoloPallino = on => on ? "collegato adesso" : "pagina del voto chiusa o senza rete";
+const pallino = uid => `<i class="tel-dot ${telVivo(VOTO.tel[uid])?"on":""}" data-vdot="${uid}" title="${titoloPallino(telVivo(VOTO.tel[uid]))}"></i>`;
+function votoPallini(){ $$("[data-vdot]").forEach(e=>{ const on = telVivo(VOTO.tel[e.dataset.vdot]); e.classList.toggle("on", on); e.title = titoloPallino(on); }); }
+setInterval(votoPallini, 10000);
+// quello che conta dei telefoni, senza il «sono qui»: se cambia solo quello, non si ridisegna il riquadro
+const votoFirma = () => JSON.stringify(Object.entries(VOTO.tel).map(([u,t])=>[u,t.stato,t.membroId,t.nome,t.cognome,t.votoFatto]));
 const votoSenzaTelefono = () => (VOTO.v?.presenti||[]).filter(id=>!votoCollegati().has(id)).map(membro).filter(Boolean).sort(perNome);
 
 /* ---- la sessione della riunione ---- */
@@ -8318,7 +8327,9 @@ function votoSessione(v){
     if(VOTO.sess?.stato==="chiusa") FB.updateDoc(s.ref, {stato:"attesa"}).catch(()=>{});   // verbale riaperto: i telefoni possono tornare
     votoAggiorna(); }, ()=>{}));
   VOTO.ascolti.push(FB.onSnapshot(FB.collection(CLOUD.fs, "sessioni", VOTO.s, "telefoni"), q=>{
-    VOTO.tel = Object.fromEntries(q.docs.map(d=>[d.id, d.data()])); votoAggiorna(true); }, ()=>{}));
+    const prima = votoFirma();
+    VOTO.tel = Object.fromEntries(q.docs.map(d=>[d.id, d.data()]));
+    if(prima===votoFirma()) votoPallini(); else votoAggiorna(true); }, ()=>{}));
   VOTO.ascolti.push(FB.onSnapshot(FB.collection(CLOUD.fs, "sessioni", VOTO.s, "votati"), q=>{
     VOTO.votati = Object.fromEntries(q.docs.map(d=>[d.id, d.data()])); votoAggiorna(); }, ()=>{}));
 }
@@ -8396,23 +8407,24 @@ function votoPannello(){
   const gia = votoCollegati(), tel = Object.entries(VOTO.tel);
   const att = tel.filter(([,t])=>t.stato==="attesa"), pr = tel.filter(([,t])=>t.membroId && ["pronto","uscito"].includes(t.stato));
   let h = `<div class="rw tel-cod"><div class="g"><div class="s">Codice della riunione</div><div class="tel-cod-n">${esc(codiceBello(VOTO.s))}</div>
-      <div class="s" style="white-space:normal">Chi vota inquadra il QR sullo schermo, oppure apre l'app «Vota» e scrive il codice, poi scrive nome e cognome.</div></div>
+      <div class="s" style="white-space:normal">Chi vota inquadra il QR sullo schermo, oppure apre l'app «Vota» e scrive il codice, poi scrive nome e cognome.</div>
+      <div class="s" style="white-space:normal;margin-top:4px">${pallino("")} rosso: la pagina del voto è chiusa o senza rete · <i class="tel-dot on"></i>verde: collegato</div></div>
       <div class="tel-cod-b">${VOTO.proiettata===VOTO.s ? `<button class="bt sm" data-vproietta="0">Smetti di proiettare</button>` : `<button class="bt sm pri" data-vproietta="1">Proietta sullo schermo</button>`}
         <button class="bt sm" data-vlink>Manda il link</button>
         <a class="bt sm" href="${esc(indirizzoVoto("proiezione.html"))}" target="_blank" rel="noopener">Schermo di proiezione</a></div></div>`;
   h += att.map(([uid,t])=>{
     const noto = membro((DB.impostazioni.telefoniNoti||{})[uid]), gia = votoCollegati();
-    const sug = noto && !gia.has(noto.id) ? [noto, ...votoSuggerimenti(`${t.nome} ${t.cognome}`).filter(m=>m.id!==noto.id)].slice(0,3) : votoSuggerimenti(`${t.nome} ${t.cognome}`);
+    const sug = noto ? [noto, ...votoSuggerimenti(`${t.nome} ${t.cognome}`).filter(m=>m.id!==noto.id)].slice(0,3) : votoSuggerimenti(`${t.nome} ${t.cognome}`);
     return `<div class="rw" style="display:block;background:var(--ocra-t)">
       <div>Un telefono ha scritto <b>«${esc(t.nome+" "+t.cognome)}»</b>. È…</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${sug.map((m,i)=>
-        `<button class="bt sm ${i===0?"pri":""}" data-vcoll="${uid}" data-m="${m.id}">${esc(nomeMembro(m))}${m===noto?" · come l'ultima volta":""}${votoPresente(m.id)?"":" · assente"}</button>`).join("")
+        `<button class="bt sm ${i===0?"pri":""}" data-vcoll="${uid}" data-m="${m.id}">${esc(nomeMembro(m))}${m===noto?" · come l'ultima volta":""}${votoPresente(m.id)?"":" · assente"}${gia.has(m.id)?" · al posto del suo altro telefono":""}</button>`).join("")
         || `<span class="s">Nessun nome somiglia.</span>`}</div>
       <div style="display:flex;gap:6px;margin-top:6px"><select class="i" data-valtro="${uid}" style="flex:1"><option value="">Un altro membro…</option>
-        ${attivi().filter(m=>!gia.has(m.id)).map(m=>`<option value="${m.id}">${esc(nomeMembro(m))}</option>`).join("")}</select>
+        ${attivi().map(m=>`<option value="${m.id}">${esc(nomeMembro(m))}${gia.has(m.id)?" (ha già un telefono)":""}</option>`).join("")}</select>
         <button class="bt sm" data-vrif="${uid}">Rifiuta</button></div></div>`;
   }).join("");
-  h += pr.map(([uid,t])=>`<div class="rw"><div class="g"><div class="t">${esc(nomeMembro(t.membroId))}</div>
+  h += pr.map(([uid,t])=>`<div class="rw"><div class="g"><div class="t">${pallino(uid)}${esc(nomeMembro(t.membroId))}</div>
       <div class="s">ha scritto «${esc(t.nome+" "+t.cognome)}»${votoPresente(t.membroId)?"":" · <b style='color:var(--timbro)'>uscito, non vota</b>"}</div></div>
       <button class="x" data-vscoll="${uid}" title="Scollega" style="border:0;background:none;color:var(--ink3);cursor:pointer;font-size:17.9px">×</button></div>`).join("");
   const senza = votoSenzaTelefono();
@@ -8422,11 +8434,18 @@ function votoPannello(){
 /* collegare un telefono a una scheda; chi non è segnato presente entra in sala o a distanza */
 function votoCollega(uid, id){
   const v = VOTO.v, m = membro(id); if(!m) return;
+  // telefono scarico o cambiato: il nuovo prende il posto del vecchio, che non vota più
+  const vecchi = Object.entries(VOTO.tel).filter(([u,t])=>u!==uid && t.membroId===id && ["pronto","uscito"].includes(t.stato)).map(([u])=>u);
   const fatto = () => {
     // il telefono si ricorda: alla prossima riunione l'app propone lo stesso membro
     DB.impostazioni.telefoniNoti = {...(DB.impostazioni.telefoniNoti||{}), [uid]:id}; salva();
-    return FB.updateDoc(D("sessioni", VOTO.s, "telefoni", uid), {stato:"pronto", membroId:id, membroNome:nomeBreve(m)}).catch(e=>avvisa("Non è andata", esc(e.message)));
+    // chi in questo giro ha già votato da un altro telefono non vota di nuovo da questo
+    const giaVotato = Object.entries(VOTO.tel).some(([u,t])=>u!==uid && (t.membroId===id || t.prima===id) && haVotato(u));
+    vecchi.forEach(u=>FB.updateDoc(D("sessioni", VOTO.s, "telefoni", u), {stato:"sostituito"}).catch(()=>{}));
+    return FB.updateDoc(D("sessioni", VOTO.s, "telefoni", uid), {stato:"pronto", membroId:id, membroNome:nomeBreve(m),
+      votoFatto: giaVotato ? votoGiro() : FB.deleteField()}).catch(e=>avvisa("Non è andata", esc(e.message)));
   };
+  const avanti = () => {
   if(v.presenti.includes(id)) return fatto();
   const entra = distanza => {
     v.presenti.push(id); allineaConteggi(v);
@@ -8440,6 +8459,10 @@ function votoCollega(uid, id){
   modale({titolo:`${nomeMembro(id)} non è segnato presente`, corpo:
     `<p class="sm-t">Collegando il telefono entra fra i presenti, con l'ora di adesso in cronologia. Come partecipa alla riunione?</p>`,
     azioni:[{testo:"Annulla",fn:()=>{}},{testo:"A distanza, in collegamento",fn:()=>entra(true)},{testo:"In sala",cls:"pri",destra:true,fn:()=>entra(false)}]});
+  };
+  if(vecchi.length) return conferma(`<b>${esc(nomeMembro(m))}</b> è già collegato con un altro telefono${vecchi.some(u=>telVivo(VOTO.tel[u]))?", che risulta ancora aperto":""}.
+    Lo sposto su questo? Il telefono vecchio non potrà più votare.`, avanti);
+  avanti();
 }
 
 /* ---- il riquadro dentro la finestra della votazione ---- */
@@ -8494,10 +8517,10 @@ function votoBox(c){
     return testa("Si sta votando", stato("vivo","In corso")) +
       `<div class="tb-prog"><div class="tb-num">${fatti}<span> di ${vot.length}</span></div><div class="tb-num-t">hanno votato</div></div>
        <div class="tb-barra"><i style="width:${pct}%"></i></div>
-       ${manca.length?`<div class="tb-riga"><span class="tb-l">Mancano</span><div class="tb-chips">${manca.map(t=>`<span>${esc(nomeMembro(t.membroId))}</span>`).join("")}</div></div>`
+       ${manca.length?`<div class="tb-riga"><span class="tb-l">Mancano</span><div class="tb-chips">${manca.map(t=>`<span>${pallino(t.uid)}${esc(nomeMembro(t.membroId))}</span>`).join("")}</div></div>`
          :`<div class="tb-ok">Hanno votato tutti. Puoi chiudere la votazione.</div>`}
-       <div class="tb-az"><button class="bt pri" data-vfine ${manca.length||!fatti?"disabled":""}>Fine votazione</button>
-         <span class="tb-nota">${manca.length?"Si sblocca quando hanno votato tutti. Se qualcuno non può votare, scollegalo in «Telefoni per votare» o segnalo come uscito.":"Si vede solo chi ha votato, mai che cosa."}</span></div>`;
+       <div class="tb-az"><button class="bt pri" data-vfine ${manca.length||!fatti?"disabled":""}>Fine votazione</button>${manca.length?`<button class="bt dan" data-vforza>Chiudi senza aspettare</button>`:""}
+         <span class="tb-nota">${manca.length?"Si sblocca quando hanno votato tutti. Pallino rosso: la pagina del voto è chiusa o senza rete. Se qualcuno non può votare, «Chiudi senza aspettare»: il suo voto conta come scheda bianca.":"Si vede solo chi ha votato, mai che cosa."}</span></div>`;
   }
   if(aperta && VOTO.fase==="spoglio"){
     const attese = Object.values(VOTO.votati).filter(x=>x.giro===VOTO.giro).length, arrivate = VOTO.urna.length;
@@ -8506,8 +8529,8 @@ function votoBox(c){
        <div class="tb-barra"><i style="width:${attese?arrivate/attese*100:0}%"></i></div>
        ${VOTO.troppe ? `<div class="tb-avv"><b>Sono arrivate più schede di quelli che hanno votato.</b> Per sicurezza questa votazione non si conta: va ripetuta.</div>
            <div class="tb-az"><button class="bt pri" data-vripeti>Ripeti la votazione</button></div>`
-         : VOTO.attesaLunga ? `<div class="tb-avv">Mancano ${attese-arrivate} schede: forse qualcuno è uscito dalla pagina del voto. Chiedigli di riaprirla: la scheda parte da sola. Altrimenti puoi contare quelle arrivate.</div>
-           <div class="tb-az"><button class="bt" data-vconta-ora>Conta le schede arrivate</button></div>`
+         : VOTO.attesaLunga ? `<div class="tb-avv">Mancano ${attese-arrivate} schede: forse qualcuno è uscito dalla pagina del voto. Chiedigli di riaprirla: la scheda parte da sola. Oppure conta adesso: le mancanti diventano schede bianche.</div>
+           <div class="tb-az"><button class="bt dan" data-vconta-ora>Conta adesso</button></div>`
          : `<div class="tb-nota">Le schede arrivano cifrate e senza nome; l'iPad le apre tutte insieme.</div>`}`;
   }
   if(votoFatto(c)){
@@ -8584,6 +8607,7 @@ async function votoApri(c){
   votoDisegnaBox();
 }
 async function votoFine(){
+  VOTO.attesi = votoVotanti().length;   // chi doveva votare: chi manca diventa scheda bianca
   VOTO.fase = "spoglio"; VOTO.urna = []; VOTO.troppe = false; VOTO.attesaLunga = false;
   await FB.updateDoc(D("sessioni", VOTO.s), {stato:"spoglio"});
   VOTO.ascoltoUrna?.();
@@ -8595,7 +8619,7 @@ async function votoFine(){
     votoDisegnaBox();
   }, ()=>{});
   clearTimeout(VOTO.timerUrna);
-  VOTO.timerUrna = setTimeout(()=>{ VOTO.attesaLunga = true; if(VOTO.box?.el.isConnected) votoDisegnaBox(); }, 25000);
+  VOTO.timerUrna = setTimeout(()=>{ VOTO.attesaLunga = true; if(VOTO.box?.el.isConnected) votoDisegnaBox(); }, 5000);
   votoDisegnaBox();
 }
 const daB64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
@@ -8619,12 +8643,19 @@ async function votoConta(){
     if(!s.length){ bianche++; continue; }
     s.forEach(id=>conta[id]=(conta[id]||0)+1);
   }
+  // chiusa senza aspettare, o schede mai arrivate: chi manca vale scheda bianca, e resta scritto
+  const mancanti = Math.max(0, (VOTO.attesi||0) - VOTO.urna.length);
+  bianche += mancanti;
+  if(mancanti){
+    c.v.cronologia.push({ora:oraOra(), testo:`${c.x?`Votazione «${c.x.oggetto||""}»`:c.e.carica}: ${mancanti} ${mancanti===1?"voto mancante contato":"voti mancanti contati"} come scheda bianca`});
+    c.v.cronologia.sort((a,b)=>a.ora.localeCompare(b.ora));
+  }
   // ogni giro si scrive da zero: i voti di un giro non si sommano mai a quelli di un altro
   if(c.x){ c.x.opzioni.forEach((o,k)=>o.voti=conta["o"+k]||0); c.x.bianchi=bianche; c.x.nulli=nulli; c.x.telFatto=c.x.giri.length; }
   else {
     c.giro.voti = {}; c.giro.no = 0;
     Object.entries(conta).forEach(([id,n])=>{ if(id==="__no") c.giro.no=n; else c.giro.voti[id]=n; });
-    c.giro.bianchi = bianche; c.giro.nulli = nulli; c.giro.schede = VOTO.urna.length; c.giro.telefoni = true;
+    c.giro.bianchi = bianche; c.giro.nulli = nulli; c.giro.schede = VOTO.urna.length + mancanti; c.giro.telefoni = true;
   }
   salva();
   // il risultato per lo schermo e i telefoni: nomi brevi e, per gli eletti, la foto
@@ -8642,6 +8673,18 @@ async function votoConta(){
   contando = false;
   if(VOTO.box?.el.isConnected) VOTO.box.ctx.rifai();
 }
+/* «Chiudi senza aspettare»: un telefono scarico non blocca la riunione. Chi non ha votato vale scheda bianca. */
+function votoForza(){
+  const manca = votoVotanti().filter(t=>!haVotato(t.uid));
+  modale({titolo:"Chiudere senza aspettare?", corpo:`<div class="avv o"><b>Non hanno ancora votato (${manca.length}):</b>
+      ${manca.map(t=>pallino(t.uid)+esc(nomeMembro(t.membroId))).join(", ")}.</div>
+    <p class="sm-t">Il loro voto conterà come <b>scheda bianca</b> e non si potrà più cambiare. Resta scritto nella cronologia del verbale.
+      Se qualcuno sta ancora votando o ha il pallino verde, aspetta ancora un momento.</p>
+    <label style="display:flex;gap:9px;align-items:center;font-size:14.6px"><input type="checkbox" data-vcapito> Ho capito: chiudo la votazione adesso</label>`,
+    azioni:[{testo:"Aspetta",fn:()=>{}},{testo:"Chiudi la votazione",cls:"dan",destra:true,fn:d=>{
+      if(!$("[data-vcapito]",d).checked){ alert("Spunta «Ho capito» per chiudere la votazione."); return false; }
+      votoFine().catch(e=>avvisa("Non è andata", esc(e.message))); }}]});
+}
 function votoEleggi(c){
   const ids = votoRisultato(c).vinti.map(m=>m.id); if(!ids.length) return;
   c.e.eletti = ids; c.e.ora = oraOra();
@@ -8653,18 +8696,19 @@ function votoEleggi(c){
 
 /* ---- azioni ---- */
 document.addEventListener("click", ev=>{
-  const b = ev.target.closest("[data-vcoll],[data-vrif],[data-vscoll],[data-vapri],[data-vfine],[data-vripeti],[data-vconta-ora],[data-veleggi],[data-vunico],[data-vgiro],[data-vrin],[data-velimina],[data-vlink],[data-vproietta]");
+  const b = ev.target.closest("[data-vcoll],[data-vrif],[data-vscoll],[data-vapri],[data-vfine],[data-vripeti],[data-vconta-ora],[data-veleggi],[data-vunico],[data-vgiro],[data-vrin],[data-velimina],[data-vlink],[data-vproietta],[data-vforza]");
   if(!b) return;
   if(b.dataset.vlink!==undefined){ votoMandaLink(); return; }
   if(b.dataset.vproietta!==undefined){ votoProietta(b.dataset.vproietta==="1"); return; }
   const d = b.dataset, ctx = VOTO.box?.ctx, T = uid => D("sessioni", VOTO.s, "telefoni", uid);
   if(d.vcoll) votoCollega(d.vcoll, d.m);
   else if(d.vrif) FB.updateDoc(T(d.vrif), {stato:"rifiutato"}).catch(()=>{});
-  else if(d.vscoll) FB.updateDoc(T(d.vscoll), {stato:"attesa", membroId:FB.deleteField(), membroNome:FB.deleteField()}).catch(()=>{});
+  else if(d.vscoll) FB.updateDoc(T(d.vscoll), {stato:"attesa", prima:VOTO.tel[d.vscoll]?.membroId||null, membroId:FB.deleteField(), membroNome:FB.deleteField()}).catch(()=>{});
   else if("vapri" in d){ b.disabled = true; votoApri(ctx).catch(e=>{ avvisa("Non è andata", esc(e.message)); votoDisegnaBox(); }); }
   else if("vfine" in d){ b.disabled = true; votoFine().catch(e=>avvisa("Non è andata", esc(e.message))); }
   else if("vripeti" in d){ VOTO.ascoltoUrna?.(); VOTO.fase = null; VOTO.ctx = null; VOTO.priv = null; votoApri(ctx); }
-  else if("vcontaOra" in d) votoConta();
+  else if("vcontaOra" in d) conferma("Conto adesso le schede arrivate? Quelle che mancano contano come <b>schede bianche</b>.", votoConta);
+  else if("vforza" in d) votoForza();
   else if("veleggi" in d) votoEleggi(ctx);
   else if("vunico" in d) unicoNonEletto(ctx.e, ctx.giro, ()=>{ salva(); VOTO.box.el.closest(".mod")?.remove(); spoglio(ctx.v, ctx.v.elezioni.indexOf(ctx.e)); });
   else if("vgiro" in d) VOTO.box.el.closest(".mod").querySelector("#giroNuovo").click();
