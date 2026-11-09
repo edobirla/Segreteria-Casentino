@@ -260,7 +260,7 @@ const PASSI = [
      schermo(`${testa}<div class="st-b"><div class="st-conf"><div class="st-ic" style="background:var(--timbro-t);color:var(--timbro)">${IC.urna}</div><h3>Sei sicuro di voler lasciare la scheda in bianco?</h3><p>Dopo non potrai più cambiarla.</p></div></div>`,
        `<button class="st-bt xl" id="bok">Sì, lascia in bianco</button><button class="st-bt xl sec">Cambia votazione</button>`);
      await attesa(2200); await tocca("#bok");
-     schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.urna}</div><h4>Voto registrato</h4><p><b>Non uscire da questa schermata</b> finché non compare il risultato.</p></div></div>`);
+     schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.urna}</div><h4>Voto arrivato</h4><p>La tua scheda è arrivata, chiusa e senza nome.</p></div></div>`);
      viaDito(); await attesa(1800);
    }},
   {t:"Nelle elezioni", d:13, x:"Per una carica scegli un nome: puoi cercarlo scrivendo le prime lettere, poi conferma. Prima di mandare il voto vedi in grande nome e foto di chi stai votando.",
@@ -285,10 +285,10 @@ const PASSI = [
      $("#si").classList.add("on"); $("#si i").innerHTML = IC.ok; $("#ok").disabled = false;
      await attesa(900); await tocca("#ok");
    }},
-  {t:"Il voto è segreto", d:6, x:"La scheda parte chiusa e senza nome, appena il segretario chiude la votazione. Non uscire dalla schermata finché non compare il risultato. Nessuno può sapere che cosa hai scelto, nemmeno il segretario.",
+  {t:"Il voto è segreto", d:6, x:"La scheda parte subito, chiusa e senza nome: dopo puoi anche uscire, il risultato lo vedi riaprendo. Nessuno può sapere che cosa hai scelto, nemmeno il segretario.",
    async fai(){
      viaDito();
-     schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.urna}</div><h4>Voto registrato</h4><p><b>Non uscire da questa schermata</b> finché non compare il risultato.</p>
+     schermo(`${testa}<div class="st-b"><div class="st-c"><div class="st-ic v">${IC.urna}</div><h4>Voto arrivato</h4><p>La tua scheda è arrivata, chiusa e senza nome.</p>
        <p style="color:var(--ink3);font-size:13.5px">È segreto: nessuno sa cosa hai scelto. Il risultato comparirà qui.</p></div></div>`);
      await attesa(4500);
    }},

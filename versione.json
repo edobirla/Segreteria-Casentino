@@ -1,14 +1,14 @@
 {
-  "versione": "26.24",
+  "versione": "26.25",
   "data": "novembre 2026",
   "novita": [
+    "Voto dai telefoni: la scheda parte appena si conferma il voto, chiusa e senza nome. Dopo si può anche uscire dalla pagina: il voto è già arrivato.",
     "Voto dai telefoni: «Scheda bianca» è l'ultima delle opzioni. Prima di mandare il voto compare «Stai votando» con nome e foto; la scheda bianca chiede conferma due volte.",
-    "Voto dai telefoni: le schede arrivano appena chiudi la votazione, senza attese.",
+    "Voto dai telefoni: il risultato compare appena chiudi la votazione, senza attese.",
     "Pallino verde o rosso accanto a ogni nome: chi ha la pagina del voto aperta e chi no.",
     "Telefono scarico: colleghi la persona da un altro dispositivo e il vecchio non vota più.",
     "«Chiudi senza aspettare»: chi non ha votato conta come scheda bianca, e resta scritto nel verbale.",
     "Proiezione: niente più tagliato in fondo allo schermo, i nomi vanno su più colonne.",
-    "Voto dai telefoni: dopo il voto un avviso grande dice di non uscire dalla schermata. Chi esce e la riapre manda comunque la scheda.",
     "Quando chiudi il verbale, i telefoni tornano alla schermata principale.",
     "Presenze: chi rientra o se ne va conta solo per il periodo giusto e i sabati passati non cambiano più.",
     "Un ospite collegato a un membro: i sabati da ospite contano nella sua scheda.",

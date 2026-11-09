@@ -6923,12 +6923,12 @@ const GUIDA=[
   ${did(1,"Nella finestra della votazione il riquadro dei telefoni dice che cosa si vota e <b>quanti telefoni sono pronti</b> su quanti presenti.")}
   ${did(2,"<b>Apri la votazione sui telefoni</b>: la scheda compare su tutti i telefoni insieme. Se la votazione l'hai creata per sbaglio, <b>Elimina questa votazione</b>.")}
   ${foto("telefoniPasso","Sul telefono: il nome, l'attesa, la scheda, il risultato")}
-  <p>Mentre si vota l'iPad mostra <b>quanti hanno votato e chi manca</b> — mai che cosa. <b>Fine votazione</b> si sblocca quando hanno votato tutti; se qualcuno non può votare, scollegalo o segnalo come uscito. Una scheda bianca chiede conferma sul telefono prima di partire.</p>
+  <p>Mentre si vota l'iPad mostra <b>quanti hanno votato e chi manca</b> — mai che cosa. <b>Fine votazione</b> si sblocca quando hanno votato tutti; se qualcuno non può votare, scollegalo o segnalo come uscito. Sul telefono ogni voto passa da «Stai votando», con nome e foto; la scheda bianca chiede conferma due volte.</p>
   ${foto("votoRisultato","Il risultato sull'iPad")}
   ${did(1,"Alla fine le schede arrivano tutte insieme e l'iPad le conta. L'esito compare sull'iPad, sullo schermo e sui telefoni.")}
   ${did(2,"Come sempre, <b>a verbale non va niente</b> finché non tocchi tu l'esito in fondo alla finestra. Alla riorganizzazione invece tocchi <b>Dichiara eletto</b>, oppure fai un nuovo giro o il ballottaggio.")}
   ${foto("proiezioneRisultato","Il risultato sullo schermo")}
-  <p><b>Perché è segreto.</b> Per ogni giro l'iPad crea una chiave che esiste solo nella sua memoria. Il telefono chiude la scheda con quella chiave e la tiene per sé; la manda solo quando hai chiuso la votazione, insieme a quelle degli altri, con un'identità nuova e anonima e dopo un'attesa a caso. Online quindi si vede soltanto <b>chi ha votato</b>, e a parte delle schede chiuse e tutte uguali, che solo l'iPad può aprire, tutte insieme. Per questo <b>chi ha votato non deve uscire dalla schermata</b> finché non compare il risultato: se esce, basta che la riapra e la scheda parte. Per questo, durante il voto, <b>tieni aperta l'app sull'iPad</b>: se la chiudi la chiave sparisce e quel giro si ripete.</p>`},
+  <p><b>Perché è segreto.</b> Per ogni giro l'iPad crea una chiave che esiste solo nella sua memoria. Il telefono chiude la scheda con quella chiave e la manda subito, con un'identità nuova e anonima, senza nome e senza ora. Online quindi si vede soltanto <b>chi ha votato</b>, e a parte delle schede chiuse e tutte uguali, che solo l'iPad può aprire, tutte insieme, a votazione chiusa; dopo il conteggio si cancellano. Chi ha votato può anche uscire dalla pagina. Se al telefono manca la rete, la scheda parte appena la si riapre. Per questo, durante il voto, <b>tieni aperta l'app sull'iPad</b>: se la chiudi la chiave sparisce e quel giro si ripete.</p>`},
 
  {g:"I verbali",t:"Le decisioni con una scadenza",c:()=>`
   <p>Quando una decisione affida un compito a qualcuno, mettici una scadenza: <b>+ Da fare entro il…</b>, sotto il testo della decisione.</p>
@@ -7375,8 +7375,8 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.24";
-const AGGIORNATA_IL="8 novembre 2026";
+const VERSIONE_APP="26.25";
+const AGGIORNATA_IL="9 novembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
@@ -8248,7 +8248,7 @@ function cambiaMiaPassword(){
    Ogni riunione aperta ha una «sessione» online (sessioni/{codice}): i telefoni ci si collegano col QR,
    il segretario li riconosce e li collega alla scheda del membro. Per ogni giro di voto l'iPad crea una
    coppia di chiavi: la pubblica va ai telefoni, la privata resta solo nella memoria dell'iPad e sparisce
-   dopo lo spoglio. Le schede arrivano cifrate e senza nome, tutte insieme a votazione chiusa. */
+   dopo lo spoglio. Le schede arrivano cifrate e senza nome appena votato; l'iPad le apre tutte insieme a votazione chiusa. */
 if(CLOUD_ATTIVO) MODI.push(["telefoni","Dai telefoni, voto segreto"]);
 const SITO_PUBBLICO = "https://edobirla.github.io/Segreteria-Casentino/";
 const VOTO = {s:null, v:null, sess:null, tel:{}, votati:{}, urna:[], priv:null, ctx:null, chiave:null, giro:0,

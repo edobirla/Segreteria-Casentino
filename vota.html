@@ -91,8 +91,6 @@ body{background:#F5F6F2;color:var(--ink);font-family:var(--sans);font-size:15px;
 .st-rr .fav i b{background:var(--verde)} .st-rr .con i b{background:var(--timbro)}
 .st-rr .bianca span,.st-rr .bianca em{color:var(--ink3);font-style:italic}
 .st-rr em{font-style:normal;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
-.st-resta{margin-top:6px;padding:16px;border-radius:14px;background:var(--timbro-t);color:var(--timbro);font-size:15px;line-height:1.4}
-.st-resta b{display:block;font-family:var(--serif);font-size:26px;line-height:1.15;font-weight:600;margin-bottom:8px}
 .st-o.bia .n{font-style:italic;color:var(--ink2)} .st-o.bia .ft{background:#fff;border:1.5px solid #D5D9CF}
 .st-bt.xl{font-size:20px;padding:19px;border-radius:14px}
 .st-bt.sec{background:#fff;color:var(--blu);border:2px solid var(--blu);box-shadow:none}
@@ -208,9 +206,9 @@ const conBianche = (r, righe) => r.bianche ? [...righe, {et:"Schede bianche", v:
 <script>
 "use strict";
 /* Il telefono di chi vota. Si collega con un'identità anonima; il segretario lo riconosce dal nome
-   e lo collega alla sua scheda. La scheda votata si cifra qui e parte solo a votazione chiusa,
-   insieme a quelle degli altri e da un'identità anonima nuova: così non si lega a chi l'ha mandata.
-   Per questo la pagina deve restare aperta; se si esce, riaprendola la scheda riparte. */
+   e lo collega alla sua scheda. La scheda votata si cifra qui e parte subito, da un'identità anonima
+   nuova, senza nome e senza ora: l'iPad la apre solo a votazione chiusa, insieme alle altre.
+   Se la rete manca, la scheda resta sul telefono e parte appena si riapre la pagina. */
 // solo nelle prove sul Mac: ?t=1, ?t=2… fanno finta di essere telefoni diversi nello stesso browser
 const {fs, auth} = collega(EMULATORE && new URLSearchParams(location.search).get("t") ? "tel" + new URLSearchParams(location.search).get("t") : undefined);
 let URNA = null;                              // seconda identità, solo per mandare la scheda
@@ -234,16 +232,16 @@ async function vota(sc){
     const busta = await cifra(sc, sess.chiave);
     localStorage.setItem(chiavePendente(g), JSON.stringify({giro:g, ...busta}));
     await FB.setDoc(FB.doc(fs, "sessioni", CODICE, "votati", io.uid), {giro:g});
-    scelta = []; conf = 0;
+    scelta = []; conf = 0; votato = {giro:g};
   }catch(e){ localStorage.removeItem(chiavePendente(g)); alert("Il voto non è partito: controlla la connessione e riprova."); }
-  votando = false; disegna();
+  votando = false; disegna();   // disegna manda subito la scheda
 }
-// l'identità anonima per la scheda si prepara subito, così a votazione chiusa la scheda parte all'istante
+// l'identità anonima per la scheda si prepara subito, così la scheda parte all'istante
 function preparaUrna(){
   if(!URNA) URNA = collega("urna", FB.inMemoryPersistence);
   return URNA.auth.currentUser ? Promise.resolve() : FB.signInAnonymously(URNA.auth);
 }
-// a votazione chiusa la scheda parte subito, da un'identità anonima diversa da quella del telefono
+// la scheda parte appena votato, da un'identità anonima diversa da quella del telefono
 async function mandaScheda(){
   const p = pendente(sess.giro);
   if(!p || invio || votando || votato?.giro!==p.giro) return;
@@ -267,7 +265,7 @@ function battito(){
   FB.updateDoc(FB.doc(fs, "sessioni", CODICE, "telefoni", io.uid), {visto:FB.serverTimestamp(), attivo:!document.hidden}).catch(()=>{});
 }
 function disegna(){
-  if(sess?.stato==="spoglio") mandaScheda();
+  if(["voto","spoglio"].includes(sess?.stato)) mandaScheda();
   tieniAcceso();
   const corpo = $("#corpo"), piede = $("#piede");
   const icona = (k,c="") => `<div class="st-ic ${c}">${IC[k]}</div>`;
@@ -300,7 +298,8 @@ function disegna(){
     const d = sess.domanda, g = sess.giro;
     if(tel.votoFatto===g) h = `<div class="st-c">${icona("urna","v")}<h4>Hai già votato</h4><p>Il tuo voto per questa votazione è partito dall'altro telefono. Da qui voterai alla prossima.</p></div>`;
     else if(votando) h = `<div class="st-c"><div class="st-attesa"><i></i></div><h4>Sto mandando il voto</h4><p>Un attimo, non chiudere.</p></div>`;
-    else if(votato?.giro===g) h = `<div class="st-c">${icona("urna","v")}<h4>Voto registrato</h4><div class="st-resta"><b>Non uscire da questa schermata</b>Non chiudere il browser e non spegnere il telefono finché non compare il risultato: la tua scheda parte da qui a fine votazione.</div></div>`;
+    else if(votato?.giro===g && pendente(g)) h = `<div class="st-c"><div class="st-attesa"><i></i></div><h4>Sto mandando il voto</h4><p>Un attimo, non chiudere. Se manca la rete, partirà appena torna.</p></div>`;
+    else if(votato?.giro===g) h = `<div class="st-c">${icona("urna","v")}<h4>Voto arrivato</h4><p>La tua scheda è arrivata, chiusa e senza nome.<br>Il risultato comparirà qui.</p></div>`;
     else if(conf && scelta.length){   // «Stai votando»: si rivede la scelta, in grande, prima che parta
       const bi = scelta[0]==="__b", sc = d.opz.filter(o=>scelta.includes(o.id));
       if(bi && conf===1){
@@ -328,7 +327,7 @@ function disegna(){
       p = `<div class="st-p"><button class="st-bt xl" id="ok" ${scelta.length?"":"disabled"}>Conferma il voto</button></div>`;
     }
   }
-  else if(sess.stato==="spoglio") h = `<div class="st-c"><div class="st-attesa"><i></i></div><h4>Si contano i voti</h4><p>${pendente(sess.giro)?"La tua scheda sta partendo, insieme a quelle degli altri. Non uscire da questa schermata.":"Il risultato comparirà qui fra poco."}</p></div>`;
+  else if(sess.stato==="spoglio") h = `<div class="st-c"><div class="st-attesa"><i></i></div><h4>Si contano i voti</h4><p>${pendente(sess.giro)?"La tua scheda sta partendo: non chiudere.":"Il risultato comparirà qui fra poco."}</p></div>`;
   else if(sess.stato==="risultato" && sess.risultato) h = risultato(sess.risultato);
   else h = `<div class="st-c">${icona("ok","v")}<h4>Ciao, ${esc(tel.nome)}</h4><p>Sei collegato come<br><b>${esc(tel.membroNome||"")}</b>.</p><p style="color:var(--ink3);font-size:13.5px">La votazione comparirà qui da sola.</p></div>`;
   const att = document.activeElement?.id, pos = document.activeElement?.selectionStart;
