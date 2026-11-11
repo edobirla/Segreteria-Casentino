@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap">
 <style>
-:root{--serif:"Spectral",Georgia,serif;--sans:"Public Sans","Helvetica Neue",Arial,sans-serif;--notte:#0F1D4C;--o:#D6B36A;--o-t:rgba(214,179,106,.16)}
+:root{--serif:"Spectral",Georgia,serif;--sans:"Public Sans","Helvetica Neue",Arial,sans-serif;--notte:#0F1D4C;--o:#D6B36A;--o-t:rgba(214,179,106,.16);--v:#7FD6A6;--v-t:rgba(111,205,155,.16);--r:#EBA091}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#000;overflow:hidden}
 /* lo schermo è sempre 16:9 e tutto si misura sulla sua larghezza (cqw): va bene per qualunque televisore */
@@ -44,10 +44,11 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden}
 .sp-r{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:1.5cqw;row-gap:calc(var(--fs)*.25);align-items:baseline}
 .sp-r-l{font-size:var(--fs);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sp-r-n{font-family:var(--serif);font-size:calc(var(--fs)*1.35);font-weight:600;line-height:1}
-.sp-r.ok .sp-r-n,.sp-r.ok .sp-r-l{color:var(--o)}
+.sp-r.ok .sp-r-n,.sp-r.ok .sp-r-l{color:var(--v)} .sp-r.con.ok .sp-r-n,.sp-r.con.ok .sp-r-l{color:var(--r)}
 .sp-r-b{grid-column:1/-1;position:relative;height:calc(var(--fs)*.42);border-radius:99px;background:rgba(255,255,255,.08)}
 .sp-r-b i{position:absolute;inset:0 auto 0 0;transform-origin:left;border-radius:99px;background:rgba(244,241,232,.55);animation:cresce .9s cubic-bezier(.2,.8,.2,1) both}
-.sp-r.ok .sp-r-b i{background:var(--o)} .sp-r.fav .sp-r-b i{background:#6FBF95} .sp-r.con .sp-r-b i{background:#D98676}
+.sp-r.fav .sp-r-b i{background:rgba(111,191,149,.6)} .sp-r.con .sp-r-b i{background:rgba(217,134,118,.6)}
+.sp-r.ok .sp-r-b i{background:var(--v);box-shadow:0 0 1.4cqw rgba(127,214,166,.45)} .sp-r.con.ok .sp-r-b i{background:#E0826F;box-shadow:none}
 .sp-r.bianca .sp-r-l,.sp-r.bianca .sp-r-n{opacity:.55;font-style:italic}
 .sp-r-b u{position:absolute;top:-.5cqw;bottom:-.5cqw;width:0;border-left:.25cqw dashed rgba(244,241,232,.5);text-decoration:none}
 @keyframes cresce{from{transform:scaleX(0)}}
@@ -58,16 +59,18 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden}
 .sp-unico-d{display:flex;flex-direction:column;height:100%;padding:1cqw 0}
 .sp-unico-d .sp-tit{margin-top:0;max-width:none}
 .sp-eletto{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:1cqw;padding-top:1.4cqw}
-.sp-k{font-family:var(--serif);font-weight:600;font-size:3.8cqw;letter-spacing:-.01em;color:var(--o);line-height:1}
-.sp-k.no,.sp-k.pari{color:rgba(244,241,232,.75)}
-.sp-cards{display:flex;gap:3cqw;justify-content:center}
-.sp-card{display:flex;align-items:center;gap:2cqw;padding:1.1cqw 3cqw 1.1cqw 1.1cqw;border-radius:2cqw;background:rgba(214,179,106,.12);border:1px solid rgba(214,179,106,.5);max-width:70cqw}
+.sp-k{font-family:var(--serif);font-weight:600;font-size:3.8cqw;letter-spacing:-.01em;color:var(--v);line-height:1}
+.sp-k.no,.sp-k.pari{color:rgba(244,241,232,.75)} .sp-k.prop.no{color:var(--r)}
+.sp-cards{display:flex;gap:3cqw;justify-content:center;flex-wrap:wrap}
+.sp-cards.tanti{gap:1.4cqw} .sp-cards.tanti .sp-card{gap:1.2cqw;padding:.8cqw 1.8cqw .8cqw .8cqw;border-radius:1.5cqw} .sp-cards.tanti .sp-card b{font-size:2.5cqw} .sp-cards.tanti .sp-card span{font-size:1.5cqw;margin-top:.3cqw} .sp-cards.tanti .ft.e{width:6cqw;height:6cqw;font-size:2.3cqw;border-radius:1cqw}
+.sp-card{display:flex;align-items:center;gap:2cqw;padding:1.1cqw 3cqw 1.1cqw 1.1cqw;border-radius:2cqw;background:var(--v-t);border:1px solid rgba(127,214,166,.6);max-width:70cqw}
 .sp-card.spento,.sp-card.no,.sp-card.pari{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.2)}
+.sp-card.prop.no{background:rgba(217,134,118,.12);border-color:rgba(235,160,145,.5)}
 .sp-card b{display:block;font-family:var(--serif);font-size:4cqw;font-weight:600;line-height:1.05;text-wrap:balance}
 .sp-card.prop b{font-size:3.4cqw}
 .sp-card span{display:block;font-size:2.1cqw;opacity:.75;margin-top:.6cqw}
-.sp-ic{width:8cqw;height:8cqw;border-radius:1.5cqw;display:grid;place-items:center;flex:none;background:rgba(214,179,106,.2);color:var(--o)}
-.sp-card.no .sp-ic,.sp-card.pari .sp-ic{background:rgba(255,255,255,.1);color:rgba(244,241,232,.85)}
+.sp-ic{width:8cqw;height:8cqw;border-radius:1.5cqw;display:grid;place-items:center;flex:none;background:rgba(111,205,155,.22);color:var(--v)}
+.sp-card.pari .sp-ic{background:rgba(255,255,255,.1);color:rgba(244,241,232,.85)} .sp-card.no .sp-ic{background:rgba(217,134,118,.2);color:var(--r)}
 .sp-ic svg{width:4.4cqw;height:4.4cqw}
 .sp-esito{margin-top:auto;display:flex;align-items:flex-end;gap:2cqw;padding-top:2cqw;border-top:1px solid rgba(255,255,255,.12)}
 .sp-esito b{font-family:var(--serif);font-size:3.4cqw;font-weight:600}
@@ -146,6 +149,9 @@ const FIREBASE_CONFIG = {apiKey:"AIzaSyAAnrdVAduKg5w6HL-UieZTZaRMShmNOh4", authD
 const EMULATORE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 const CODICE = decodeURIComponent(location.hash.slice(1)).replace(/[^A-Za-z0-9]/g, "");
 const $ = (s, c=document) => c.querySelector(s);
+/* cerca per inizio di nome o di cognome: «ri» trova Rita e Rinaldi, non Maria */
+const paroleNome = t => String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().split(/[^a-z]+/).filter(Boolean);
+const nomeInizia = (n,q) => { const p = paroleNome(n); return paroleNome(q).every(x=>p.some(y=>y.startsWith(x))); };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const b64 = u => btoa(String.fromCharCode(...new Uint8Array(u)));
 
@@ -155,7 +161,10 @@ function collega(nome, persistenza){
   const fs = FB.initializeFirestore(app, {localCache: FB.memoryLocalCache(), experimentalForceLongPolling: true});
   if(EMULATORE){
     FB.connectAuthEmulator(auth, "http://127.0.0.1:9099", {disableWarnings: true});
-    FB.connectFirestoreEmulator(fs, "127.0.0.1", 8080);
+    // solo in prova (?t=N): ogni telefono finto parla all'emulatore con nomi suoi (tel1.localhost, urna1.localhost…), perché
+    // il browser tiene al massimo sei connessioni per indirizzo e tanti telefoni nello stesso browser resterebbero in coda
+    const t = new URLSearchParams(location.search).get("t");
+    FB.connectFirestoreEmulator(fs, t && nome ? nome.replace(/\d+$/, "") + t + ".localhost" : "127.0.0.1", 8080);
   }
   return {app, auth, fs};
 }
@@ -183,10 +192,18 @@ const IC = {
 function esitoProposta(r){
   if(r.fc) return r.esito[0]==="si" ? {k:"Approvata", cls:"si", ic:"ok", titolo:r.titolo}
     : r.esito[0]==="no" ? {k:"Non approvata", cls:"no", ic:"no", titolo:r.titolo} : {k:"Parità", cls:"pari", ic:"pari", titolo:r.titolo};
-  return r.esito[0]==="si" ? {k:"Scelta", cls:"si", ic:"ok", titolo:r.righe[0].et, sotto:`${r.titolo} · ${r.righe[0].v} voti`}
-    : {k:"Parità", cls:"pari", ic:"pari", titolo:r.titolo};
+  return r.esito[0]==="si" ? {k:"Scelta", cls:"si", ic:"ok", titolo:r.vinta||r.righe[0].et, sotto:`${r.titolo} · ${(r.righe.find(x=>x.et===r.vinta)||r.righe[0]).v} voti`}
+    : r.esito[0]==="no" ? {k:"Non approvata", cls:"no", ic:"no", titolo:r.titolo}
+    : {k:/^Parit/.test(r.esito[1])?"Parità":"Nessuna maggioranza", cls:"pari", ic:"pari", titolo:r.titolo};
 }
+/* eletto, eletta, eletti, elette: secondo chi è */
+const parolaEletti = L => { const f = L.length>0 && L.every(m=>m && m.f); return L.length>1 ? (f?"Elette":"Eletti") : f?"Eletta":"Eletto"; };
 const conBianche = (r, righe) => r.bianche ? [...righe, {et:"Schede bianche", v:r.bianche, bianca:true}] : righe;
+/* le righe da mettere in evidenza: gli eletti, oppure l'opzione che raggiunge la maggioranza (o la scelta fatta) */
+function vincenti(r){
+  if(r.elez) return (r.vinti||[]).map(m=>m.et || m.nome);
+  return r.vinta ? [r.vinta] : [];
+}
 </script>
 <script>
 "use strict";
@@ -206,7 +223,7 @@ function barre(righe, max, soglia, vinti, spazio=32){
   const col = righe.length>12 ? 3 : righe.length>5 ? 2 : 1, perCol = Math.ceil(righe.length/col);
   const fs = Math.min([3,2.6,2.3][col-1], spazio/(perCol*2.3));
   return `<div class="sp-ris" style="--col:${col};--fs:${fs.toFixed(2)}cqw;grid-template-rows:repeat(${perCol},auto)">${righe.map(x=>
-    `<div class="sp-r ${vinti.includes(x.et)?"ok":""} ${x.bianca?"bianca":""} ${tono(x.et)}"><span class="sp-r-l">${esc(x.et)}</span><span class="sp-r-n">${x.v}</span>
+    `<div class="sp-r ${!x.bianca&&vinti.includes(x.et)?"ok":""} ${x.bianca?"bianca":""} ${tono(x.et)}"><span class="sp-r-l">${esc(x.et)}</span><span class="sp-r-n">${x.v}</span>
       <div class="sp-r-b"><i style="width:${x.v/max*100}%"></i>${soglia?`<u style="left:${Math.min(100,soglia/max*100)}%"></u>`:""}</div></div>`).join("")}</div>`;
 }
 const scheda = (m, carica, cls="") => `<div class="sp-card ${cls}">${foto(m,"ft e")}<div><b>${esc(m.nome)}</b><span>${esc(carica||"")}</span></div></div>`;
@@ -240,7 +257,8 @@ function disegnaSchermo(){
   const d = sess.domanda, r = sess.risultato;
   if((sess.stato==="voto" || sess.stato==="spoglio") && d){
     const c = sess.conteggio || {fatto:0, totale:0}, pct = c.totale ? c.fatto/c.totale*100 : 0;
-    const pill = sess.stato==="spoglio" ? `<span class="sp-pill"><i></i>Si contano i voti</span>` : d.ballo ? `<span class="sp-pill oro"><i></i>Ballottaggio</span>` : `<span class="sp-pill"><i></i>Votazione in corso</span>`;
+    const pill = d.prova ? `<span class="sp-pill oro"><i></i>${sess.stato==="spoglio"?"Prova · si contano i voti":"Votazione di prova"}</span>`
+      : sess.stato==="spoglio" ? `<span class="sp-pill"><i></i>Si contano i voti</span>` : d.ballo ? `<span class="sp-pill oro"><i></i>Ballottaggio</span>` : `<span class="sp-pill"><i></i>Votazione in corso</span>`;
     const conta = `<div class="sp-conta"><div class="sp-num">${c.fatto}<span> / ${c.totale}</span></div><div class="sp-num-t">hanno votato</div></div><div class="sp-prog"><i style="width:${pct}%"></i></div>`;
     // candidato unico: la sua scheda grande a sinistra; al primo giro le opzioni non si vedono, nei ballottaggi sì
     if(d.proposto) el.innerHTML = `${testa(pill)}<div class="sp-unico"><div class="sp-big">${foto(d.proposto,"ft g")}<b>${esc(d.proposto.nome)}</b><span>candidato a ${esc(d.titolo.toLowerCase())}</span></div>
@@ -250,20 +268,20 @@ function disegnaSchermo(){
     return;
   }
   if(sess.stato==="risultato" && r){
-    const pill = `<span class="sp-pill">${r.ballo?"Risultati del ballottaggio":"Risultati"}</span>`;
+    const pill = `<span class="sp-pill ${r.prova?"oro":""}">${r.prova?"Prova · ":""}${r.ballo?"Risultati del ballottaggio":"Risultati"}</span>`;
     const max = Math.max(1, ...r.righe.map(x=>x.v), r.soglia||0);
-    const vinti = r.vinti.map(m=>m.et || m.nome);
+    const vinti = vincenti(r);
     if(r.elez && r.vinti.length){
       const tutti = conBianche(r, r.proposto||r.ballo ? r.righe : r.righe.filter(x=>x.v));
       el.innerHTML = `${testa(pill)}<div class="sp-tit piccolo">${esc(r.titolo)}</div>${barre(tutti, max, r.soglia, vinti, 11)}
-        <div class="sp-eletto"><div class="sp-k">${r.vinti.length>1?"Eletti":"Eletto"}</div><div class="sp-cards">${r.vinti.map(m=>scheda(m, r.carica)).join("")}</div></div>`;
+        <div class="sp-eletto"><div class="sp-k">${parolaEletti(r.vinti)}</div><div class="sp-cards ${r.vinti.length>2?"tanti":""}">${r.vinti.map(m=>scheda(m, m.carica||r.carica)).join("")}</div></div>`;
       return;
     }
     const righe = conBianche(r, r.elez && !r.ballo ? r.righe.filter(x=>x.v) : r.righe);
     const prop = !r.elez ? esitoProposta(r) : null;
-    el.innerHTML = `${testa(pill)}<div class="sp-tit piccolo">${esc(r.titolo)}</div>${barre(righe, max, r.elez?r.soglia:0, [], prop||r.proposto?11:32)}
-      ${r.proposto?`<div class="sp-eletto"><div class="sp-k no">Non eletto</div><div class="sp-cards">${scheda(r.proposto, r.carica, "spento")}</div></div>`
-       : prop?`<div class="sp-eletto"><div class="sp-k ${prop.cls}">${esc(prop.k)}</div><div class="sp-cards"><div class="sp-card prop ${prop.cls}"><div class="sp-ic">${IC[prop.ic]}</div><div><b>${esc(prop.titolo)}</b>${prop.sotto?`<span>${esc(prop.sotto)}</span>`:""}</div></div></div></div>`
+    el.innerHTML = `${testa(pill)}<div class="sp-tit piccolo">${esc(r.titolo)}</div>${barre(righe, max, r.soglia, vinti, prop||r.proposto?11:32)}
+      ${r.proposto?`<div class="sp-eletto"><div class="sp-k no">Non ${parolaEletti([r.proposto]).toLowerCase()}</div><div class="sp-cards">${scheda(r.proposto, r.carica, "spento")}</div></div>`
+       : prop?`<div class="sp-eletto"><div class="sp-k prop ${prop.cls}">${esc(prop.k)}</div><div class="sp-cards"><div class="sp-card prop ${prop.cls}"><div class="sp-ic">${IC[prop.ic]}</div><div><b>${esc(prop.titolo)}</b>${prop.sotto?`<span>${esc(prop.sotto)}</span>`:""}</div></div></div></div>`
        : `<div class="sp-esito"><b>${esc(r.esito[1])}</b><span class="pic">${r.schede} ${r.schede===1?"scheda":"schede"} · ${r.bianche} ${r.bianche===1?"bianca":"bianche"}</span></div>`}`;
     return;
   }

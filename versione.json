@@ -1,18 +1,27 @@
 {
-  "versione": "26.26",
+  "versione": "26.27",
   "data": "novembre 2026",
   "novita": [
+    "La ricerca dei nomi trova chi ha il nome o il cognome che comincia con le lettere scritte (sui telefoni vale anche il nome con cui uno è conosciuto). Votando i membri di comitato, dirigente, segretario e tesoriere appena eletti non sono più fra i nomi: ci sono già ex ufficio, e in sala compaiono accanto agli eletti. Corretto: con le votazioni di prova accese un verbale nuovo non si apriva.",
+    "Voto dai telefoni: chi si è fatto riconoscere una volta resta. Senza riunioni vede «Nessuna riunione»; quando se ne apre una e lui è presente, il telefono è già collegato senza inquadrare di nuovo. Se è assente, la richiesta arriva al segretario, che accetta o rifiuta. A un comitato entrano solo i membri del comitato.",
+    "Votazioni: avviso se manca una nota obbligatoria; la ricerca dei nomi funziona (anche sui telefoni); «eletto» o «eletta» secondo chi è; in sala si vede subito una proposta approvata a mano e chi riceve un altro incarico dalla stessa votazione.",
+    "Elezioni: «Dopo il giro» è nella stessa finestra dello spoglio, sotto il risultato. Per ogni nome scegli Eletto, Resta in gara o Fuori, poi il giro con i rimasti, con tutti, oppure chiudi. Quando i posti sono tutti assegnati gli altri vanno fuori da soli. A elezione finita lo schermo mostra tutti gli eletti, anche quelli dei giri prima.",
+    "Proposte: sono approvate solo se raggiungono la maggioranza dei presenti. In parità lo schermo dice «Parità» e scegli tu: non approvata, oppure «Nuovo giro», anche con un'opzione in più. Approvare sotto la maggioranza resta possibile, scrivendo il motivo.",
+    "Più eletti dei posti previsti: se, per esempio, quattro persone hanno gli stessi voti per un posto solo e si decide di dare l'incarico a tutte, le segni tutte «Eletto» e scrivi il motivo.",
+    "«Altro incarico»: dopo un giro l'assemblea può dare a qualcuno una carica diversa da quella votata (per esempio la seconda più votata diventa 2ª diaconessa), con il motivo. Per i diaconi si votano solo gli uomini, per le diaconesse solo le donne.",
+    "Rinuncia: chi rinuncia sparisce dall'elenco di quell'incarico. Se ci ripensa, «Annulla la rinuncia»: nel verbale restano tutte e due le cose.",
+    "Nuova carica: i nomi che spunti possono essere i soli candidati oppure quelli da escludere («Tutti tranne gli spuntati», con il motivo). Rinunce ed esclusioni si annullano dal riquadro «Chi non si può votare», anche quando si vota dai telefoni.",
+    "Nuova votazione: con «Favorevole o contrario» i campi delle opzioni non si vedono più. Le proposte di prova si scrivono a mano, come quelle vere.",
+    "Impostazioni → Documenti: l'elenco delle cariche si può cambiare (rinominare, aggiungere, togliere). La carica si chiama «Delegati al Campo». Alla riorganizzazione il conto «fatte» è su tutte le cariche da assegnare.",
+    "Voto dai telefoni: il pallino diventa rosso entro pochi secondi quando uno esce dalla pagina del voto o perde la rete (resta collegato alla riunione). Se ci sono telefoni collegati, una nuova votazione parte già impostata sul voto dai telefoni.",
+    "«Escludi dei nomi»: togli dai candidati uno o più membri, con il motivo, per un incarico o per tutta la riunione.",
+    "Telefono: scritte più grandi, la pagina non si ingrandisce più per sbaglio, e con più nomi da scegliere bisogna sceglierne il numero giusto (oppure la scheda bianca).",
+    "Chi è eletto e la proposta approvata sono in verde, sullo schermo e sul telefono; la barra della maggioranza c'è anche nelle proposte.",
+    "Votazioni di prova, con incarichi di fantasia: si accendono in Impostazioni → Documenti e nel verbale resta solo che si sono fatte.",
     "Computer della proiezione: pulsante «Tutorial» per proiettare il tutorial del voto, e dalla proiezione si passa dal tutorial alla riunione e ritorno.",
     "Voto dai telefoni: la scheda parte appena si conferma il voto, chiusa e senza nome. Dopo si può anche uscire dalla pagina: il voto è già arrivato.",
     "Voto dai telefoni: «Scheda bianca» è l'ultima delle opzioni. Prima di mandare il voto compare «Stai votando» con nome e foto; la scheda bianca chiede conferma due volte.",
     "Voto dai telefoni: il risultato compare appena chiudi la votazione, senza attese.",
-    "Pallino verde o rosso accanto a ogni nome: chi ha la pagina del voto aperta e chi no.",
-    "Telefono scarico: colleghi la persona da un altro dispositivo e il vecchio non vota più.",
-    "«Chiudi senza aspettare»: chi non ha votato conta come scheda bianca, e resta scritto nel verbale.",
-    "Proiezione: niente più tagliato in fondo allo schermo, i nomi vanno su più colonne.",
-    "Quando chiudi il verbale, i telefoni tornano alla schermata principale.",
-    "Presenze: chi rientra o se ne va conta solo per il periodo giusto e i sabati passati non cambiano più.",
-    "Un ospite collegato a un membro: i sabati da ospite contano nella sua scheda.",
-    "Accessi: il codice del primo accesso ora si vede anche sull'iPad."
+    "Pallino verde o rosso accanto a ogni nome: chi ha la pagina del voto aperta e chi no."
   ]
 }
