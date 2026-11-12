@@ -2764,7 +2764,7 @@ function schedaMembro(m){
         <button class="bt sm dan" data-fotovia style="margin-top:5px;width:100%;justify-content:center">Togli</button>`:""}</div>
       <div style="flex:1;display:flex;flex-direction:column;gap:10px">
         <div class="fr">${campo("Cognome","cognome",m.cognome)}${campo("Nome","nome",m.nome)}</div>
-        <div class="fr">${campo("Come lo conoscono","conosciuto",m.conosciuto||"","text",`placeholder="es. ${esc(String(m.cognome||"").split(/\s+/)[0])} Nelutu — servirà per le votazioni dai telefoni; nei verbali resta il nome intero"`)}</div>
+        <div class="fr">${campo("Come lo conoscono","conosciuto",m.conosciuto||"","text",`placeholder="serve per le votazioni dai telefoni; nei verbali resta il nome intero"`)}</div>
         <div class="fr">${campo("Nato il","nato",m.nato,"date")}${scelta("Sesso","sesso",m.sesso,[["M","M"],["F","F"]])}
           <div class="fl"><span class="lb">Età</span><div class="au">${eta(m)??"—"}<span class="au-t">auto</span></div></div></div>
       </div>
@@ -7773,14 +7773,14 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.27";
-const AGGIORNATA_IL="10 novembre 2026";
+const VERSIONE_APP="26.28";
+const AGGIORNATA_IL="12 novembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */
 if(location.protocol.startsWith("http") && "serviceWorker" in navigator)
   addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
-const SEZ_IMP=[["documenti","Documenti"],["campo","Dati per il Campo"],["chiese","Chiese conosciute"],
+const SEZ_IMP=[["documenti","Documenti"],["cariche","Cariche"],["campo","Dati per il Campo"],["chiese","Chiese conosciute"],
   ["presenze","Presenze"],["dati","Dati e spazio"],["firma","La tua firma"],["accessi","Accessi"],["prova","Archivio e versione"]];
 VISTE.impostazioni=async ()=>{
   const I=DB.impostazioni;
@@ -7805,7 +7805,9 @@ VISTE.impostazioni=async ()=>{
           <label style="display:flex;align-items:center;gap:10px;font-size:14.6px">
             <input type="checkbox" data-c="votazioniProva" ${I.votazioniProva?"checked":""}> Mostra nei verbali le «Votazioni di prova» (incarichi finti, per far provare il voto ai membri)</label>
         </div></div>
-      <div class="pn"><div class="pn-h"><span class="lb">Cariche della chiesa</span><button class="bt sm psh" data-cadd>+ Aggiungi una carica</button></div>
+    </div>
+    <div style="${S("cariche")?"":"display:none"}">
+      <div class="pn gro"><div class="pn-h"><span class="lb">Cariche della chiesa</span><button class="bt sm psh" data-cadd>+ Aggiungi una carica</button></div>
         <div class="pn-b">
           <div class="avv n">Sono le cariche che si votano alla riorganizzazione e che si possono dare ai membri. Puoi cambiare il nome, aggiungerne o toglierne. Quelle segnate «fissa» servono all'app per il comitato e per i moduli del Campo. Se rinomini una carica, cambia nome anche a chi ce l'ha già; i verbali già scritti restano come sono.</div>
           <div class="nv-l">${CARICHE.map((c,k)=>CARICHE_FISSE.includes(c)
