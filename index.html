@@ -1637,7 +1637,7 @@ function apriPagina(url){
 document.addEventListener("click", e=>{
   const a = e.target.closest('a[target="_blank"]'); if(!a) return;
   let u; try{ u = new URL(a.href, location.href); }catch(err){ return; }
-  if(u.origin!==location.origin && u.hostname!=="edobirla.github.io") return;   // solo le pagine di questo sito
+  if(u.origin!==location.origin && u.hostname!=="sdarm-casentino.github.io") return;   // solo le pagine di questo sito
   e.preventDefault(); apriPagina(u.href);
 });
 function avvisa(titolo,testo){ modale({titolo,corpo:`<p style="margin:0">${testo}</p>`,azioni:[{testo:"Ho capito",cls:"pri",destra:true,fn:()=>{}}]}); }
@@ -7311,7 +7311,7 @@ const GUIDA=[
   ${did(1,"Nel verbale compare il riquadro <b>Telefoni per votare</b>, con il <b>codice della riunione</b> (sei caratteri, cambia ogni riunione). Chi vota inquadra il QR sullo schermo; chi non può, apre l'app <b>Vota</b> o la pagina del voto e scrive il codice. <b>Manda il link</b> lo fa arrivare nel gruppo, per chi non vede lo schermo. In fondo al riquadro vedi chi è presente ma non ha ancora collegato il telefono.")}
   ${did(2,"Per ogni telefono l'app ti propone i nomi che somigliano: tocchi quello giusto, oppure scegli un altro membro o <b>Rifiuta</b>. Un telefono che ha già votato in un'altra riunione viene riconosciuto: il primo nome proposto è quello dell'ultima volta. Se il membro non era segnato presente, l'app ti chiede se è <b>in sala</b> o <b>a distanza</b>, e lo scrive nel verbale. Chi esce dalla riunione esce anche dal voto.")}
   ${foto("proiezione","Lo schermo di proiezione")}
-  <p><b>Per spiegarlo all'assemblea</b> c'è un tutorial animato che mostra il telefono passo per passo, dal QR al risultato: apri <a href="https://edobirla.github.io/Segreteria-Casentino/tutorial-voto.html" target="_blank" rel="noopener">tutorial-voto.html</a> sul computer della proiezione e fai doppio clic per il tutto schermo. Se il computer ha un accesso all'app, tocca <b>Tutorial</b> in fondo al menu, accanto a Proiezione; durante la proiezione, il pulsante in alto a destra passa dal tutorial alla riunione e ritorno. Spazio mette in pausa, le frecce vanno avanti e indietro.</p>
+  <p><b>Per spiegarlo all'assemblea</b> c'è un tutorial animato che mostra il telefono passo per passo, dal QR al risultato: apri <a href="https://sdarm-casentino.github.io/segreteria-casentino/tutorial-voto.html" target="_blank" rel="noopener">tutorial-voto.html</a> sul computer della proiezione e fai doppio clic per il tutto schermo. Se il computer ha un accesso all'app, tocca <b>Tutorial</b> in fondo al menu, accanto a Proiezione; durante la proiezione, il pulsante in alto a destra passa dal tutorial alla riunione e ritorno. Spazio mette in pausa, le frecce vanno avanti e indietro.</p>
   <p><b>L'app «Vota» sul telefono.</b> Dalla pagina del voto, nel menu del browser, si sceglie <b>Aggiungi alla schermata Home</b>: compare l'icona con l'urna. Aprendola si scrive il codice della riunione; dentro la stessa riunione non serve rifare niente, le votazioni arrivano da sole.</p>
   ${foto("telCodice","Il codice scritto a mano")}
   ${foto("votoPronto","La votazione, pronta da aprire")}
@@ -8682,7 +8682,7 @@ function cambiaMiaPassword(){
    coppia di chiavi: la pubblica va ai telefoni, la privata resta solo nella memoria dell'iPad e sparisce
    dopo lo spoglio. Le schede arrivano cifrate e senza nome appena votato; l'iPad le apre tutte insieme a votazione chiusa. */
 if(CLOUD_ATTIVO) MODI.push(["telefoni","Dai telefoni, voto segreto"]);
-const SITO_PUBBLICO = "https://edobirla.github.io/Segreteria-Casentino/";
+const SITO_PUBBLICO = "https://sdarm-casentino.github.io/segreteria-casentino/";
 const VOTO = {s:null, v:null, sess:null, tel:{}, votati:{}, urna:[], priv:null, ctx:null, chiave:null, giro:0,
   fase:null, ascolti:[], ascoltoUrna:null, box:null, mini:new Map(), timerUrna:null, troppe:false, attesaLunga:false};
 const votoPossibile = () => CLOUD_ATTIVO && CLOUD.stato==="collegato" && puoScrivere();
