@@ -4944,7 +4944,7 @@ function dopoGiro(v, e, giro, magg, dopo, el, blocca){
     const altrove = L.filter(m=>st[m.id]==="a");
     $$("[data-dg]",el).forEach(r=>{ r.className = "dg-r "+st[r.dataset.dg]; $("[data-dga]",r).hidden = st[r.dataset.dg]!=="a"; });
     $("[data-dgs]",el).innerHTML = `Posti da assegnare: <b>${posti}</b> · eletti adesso: <b>${eletti.length}</b> · ${
-      resto>0 ? `${resto===1?"resta <b>1</b> posto":`restano <b>${resto}</b> posti`}: nel prossimo giro ognuno vota ${resto===1?"un nome":resto+" nomi"}`
+      resto>0 ? `${resto===1?"resta <b>1</b> posto":`restano <b>${resto}</b> posti`}: con un altro giro ognuno vota ${resto===1?"un nome":resto+" nomi"}; con «Conferma e chiudi» ${resto===1?"resta non assegnato":"restano non assegnati"} e serve il motivo`
       : resto===0 ? "tutti i posti sono assegnati" : `<b>${-resto} in più dei posti previsti</b>: si può fare, i posti diventano ${posti-resto}. Scrivi il motivo qui sotto.`}${
       sotto.length?`<br>Senza maggioranza: <b>${esc(sotto.map(nomeMembro).join(", "))}</b>. Scrivi il motivo qui sotto.`:""}${
       altrove.length?`<br>Altro incarico: ${altrove.map(m=>`<b>${esc(nomeMembro(m))}</b> → ${esc($(`[data-dg="${m.id}"] [data-dga]`,el).value||"nessun incarico libero")}`).join(", ")}. Scrivi il motivo qui sotto.`:""}`;
@@ -4962,6 +4962,8 @@ function dopoGiro(v, e, giro, magg, dopo, el, blocca){
     if(resto<0 && !nota) return err(`I posti erano ${posti} e hai segnato ${eletti.length} eletti: scrivi il motivo, resta nel verbale.`);
     if(sotto.length && !nota) return err("Qualcuno è eletto senza la maggioranza: scrivi il motivo, resta nel verbale.");
     if(modo!=="chiudi" && resto<=0) return err("I posti sono tutti assegnati: non serve un altro giro. Tocca «Conferma e chiudi».");
+    if(modo==="chiudi" && resto>0 && !nota){ $("[data-dgn]",d).hidden = false;
+      return err(`${resto===1?"Resta 1 posto non assegnato":`Restano ${resto} posti non assegnati`}: scrivi il motivo, resta nel verbale. Per assegnarlo fai un altro giro.`); }
     /* si è deciso di dare l'incarico a più persone del previsto (per esempio quattro a pari voti per un posto solo) */
     if(resto<0){
       const prima = e.quanti||1; e.quanti = prima - resto;
@@ -4972,6 +4974,12 @@ function dopoGiro(v, e, giro, magg, dopo, el, blocca){
     annullaAltrove(v, e, giro);
     eleggi(v, e, giro, eletti, nota, magg);
     assegnaAltrove(v, e, giro, altrove, nota);
+    /* chiusa con meno eletti dei posti: i posti restano vuoti per decisione dell'assemblea, con il motivo */
+    delete e.postiVuoti;
+    if(modo==="chiudi" && resto>0){
+      e.postiVuoti = {posti:resto, nota, ora:oraOra()};
+      scriviCrono(v, e, `${e.carica}: ${resto===1?"1 posto resta non assegnato":`${resto} posti restano non assegnati`}. Motivo: ${nota}`);
+    }
     e.chiusa = modo==="chiudi";
     if(modo!=="chiudi") e.giri.push({voti:{},nulli:0,bianchi:0,astenuti:0,candidati:modo==="rimasti"?rimasti:[],posti:resto});
     dopo(modo!=="chiudi");
@@ -5133,6 +5141,7 @@ function bloccoElezioniStampa(v){
       ${(e.rinunceRitirate||[]).length?`<p class="rin">Rinunce poi ritirate: ${esc(e.rinunceRitirate.map(nomeMembro).join(", "))}.</p>`:""}
       ${(e.daAltra||[]).map(d=>`<p class="rin">${esc(nomeMembro(d.id))}: incarico dato dall'assemblea dopo la votazione per ${esc(d.carica)} (${d.voti} ${d.voti===1?"voto":"voti"}). Motivo: ${esc(d.nota)}</p>`).join("")}
       ${(e.postiAggiunti||[]).map(p=>`<p class="rin">Gli eletti passano da ${p.da} a ${p.a} per decisione dell'assemblea. Motivo: ${esc(p.nota)}</p>`).join("")}
+      ${e.chiusa && e.postiVuoti ? `<p class="rin">${e.postiVuoti.posti===1?"1 posto resta non assegnato":`${e.postiVuoti.posti} posti restano non assegnati`} per decisione dell'assemblea. Motivo: ${esc(e.postiVuoti.nota)}</p>` : ""}
       ${[...(e.esclusi||[]), ...gruppoUfficio(v,e)].map(g=>`<p class="rin">${fraseEsclusi(g)}</p>`).join("")}
       ${(e.forzature||[]).map(f=>`<p class="rin">${esc(f.ids.map(nomeMembro).join(", "))}: ${parolaEletto(f.ids)} senza la maggioranza dei presenti (${f.voti.join(", ")} ${f.voti.length===1&&f.voti[0]===1?"voto":"voti"}, maggioranza ${f.soglia}). Motivo: ${esc(f.nota)}</p>`).join("")}
     </div>`;
@@ -7773,8 +7782,8 @@ VISTE.manuale=()=>{
 let impSez="documenti";
 /* si vede in Impostazioni: serve a capire al volo se sull'iPad e' arrivata la versione
    nuova o e' rimasta quella di prima in memoria. */
-const VERSIONE_APP="26.28";
-const AGGIORNATA_IL="12 novembre 2026";
+const VERSIONE_APP="26.29";
+const AGGIORNATA_IL="13 novembre 2026";
 const CREDITI="Realizzato da: Edoardo Birla";
 /* offline: il service worker tiene in cache l'app e i caratteri, cosi' sull'iPad
    si apre e funziona senza rete. Data e ora arrivano dall'orologio del dispositivo. */

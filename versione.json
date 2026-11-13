@@ -1,7 +1,8 @@
 {
-  "versione": "26.28",
+  "versione": "26.29",
   "data": "novembre 2026",
   "novita": [
+    "Elezioni: se un incarico ha più posti e si chiude con meno eletti (per esempio uno solo su due), l'app avvisa che il posto resta non assegnato e chiede il motivo, che va nel verbale e nella cronologia. Per assegnarlo resta sempre possibile un altro giro.",
     "Impostazioni: le cariche della chiesa hanno una scheda a parte e l'intestazione dei documenti ha tutto lo spazio della sua. Nel campo «Come lo conoscono» non c'è più l'esempio.",
     "La ricerca dei nomi trova chi ha il nome o il cognome che comincia con le lettere scritte (sui telefoni vale anche il nome con cui uno è conosciuto). Votando i membri di comitato, dirigente, segretario e tesoriere appena eletti non sono più fra i nomi: ci sono già ex ufficio, e in sala compaiono accanto agli eletti. Corretto: con le votazioni di prova accese un verbale nuovo non si apriva.",
     "Voto dai telefoni: chi si è fatto riconoscere una volta resta. Senza riunioni vede «Nessuna riunione»; quando se ne apre una e lui è presente, il telefono è già collegato senza inquadrare di nuovo. Se è assente, la richiesta arriva al segretario, che accetta o rifiuta. A un comitato entrano solo i membri del comitato.",
